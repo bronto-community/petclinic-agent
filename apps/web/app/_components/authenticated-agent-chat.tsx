@@ -19,7 +19,16 @@ export async function AuthenticatedAgentChat({
 
   return (
     <>
-      <AgentChat sessionId={sessionId} sessionless={sessionless} />
+      <AgentChat
+        sessionId={sessionId}
+        sessionless={sessionless}
+        user={{
+          email: session.user.email,
+          id: session.user.id,
+          image: session.user.image,
+          name: session.user.name,
+        }}
+      />
       <AccountControl
         email={session.user.email}
         image={session.user.image}

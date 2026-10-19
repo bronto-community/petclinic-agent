@@ -58,7 +58,8 @@ PETCLINIC_API_KEY=<same as petclinic/.env>
 BRONTO_REGION=eu
 BRONTO_API_KEY=<your key>
 ENV
-pnpm dev:all      # chat page and agent; or `pnpm exec eve dev` for the terminal UI
+pnpm dev          # agent with the eve terminal UI
+pnpm dev:web      # chat page on http://localhost:3000 (sends to the agent on Vercel routes)
 ```
 
 Try: "Hi, I'm Betty Davis. Please book a check-up for my hamster Basil next Tuesday."

@@ -23,7 +23,10 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
+import { AssistantAvatar, type ChatUser, UserAvatar } from "./avatars";
 import { BrontoLogo, Eyebrow } from "./brand";
+import { useChatHistory } from "./chat-history";
+import { HistorySidebar, MobileHistory } from "./history-sidebar";
 import { WEB_CHAT_AGENT } from "@/app/eve-agent";
 
 const EXAMPLES = [
@@ -35,10 +38,14 @@ const EXAMPLES = [
 export function AgentChat({
   sessionId,
   sessionless = false,
+  user,
 }: {
   readonly sessionId?: string;
   readonly sessionless?: boolean;
+  readonly user?: ChatUser;
 }) {
+  const history = useChatHistory(user?.id ?? "local");
+  const firstMessage = useRef<string | undefined>(undefined);
   const [cancellationError, setCancellationError] = useState<string>();
   const [hasInputText, setHasInputText] = useState(false);
   const hasSubmittedMessage = useRef(false);
@@ -67,6 +74,7 @@ export function AgentChat({
     onSessionChange(session) {
       if (hasSubmittedMessage.current && session !== undefined) {
         replaceSessionRoute(session.sessionId);
+        history.record(session.sessionId, firstMessage.current ?? "New chat");
       }
     },
   });
@@ -83,7 +91,7 @@ export function AgentChat({
     (agent.status === "submitted" || lastMessage?.role !== "assistant" || isPendingAssistantShell);
   const turnFailure = isBusy || isResuming ? undefined : getLatestTurnFailure(agent.events);
   const errorMessage = cancellationError ?? agent.error?.message ?? turnFailure;
-  const hasConversationContent = sessionless || !isEmpty || errorMessage !== undefined;
+  const hasConversationContent = !isEmpty || errorMessage !== undefined;
   const showConversationLayout = isResuming || hasConversationContent;
   const activeSessionId = sessionId ?? agent.session?.sessionId;
   // Answers are accepted while work runs; the server's settlement closes each request.
@@ -109,7 +117,11 @@ export function AgentChat({
     setHasInputText(false);
     setCancellationError(undefined);
     hasSubmittedMessage.current = true;
-    if (agent.session !== undefined) replaceSessionRoute(agent.session.sessionId);
+    firstMessage.current ??= toTitle(text || message.files[0]?.filename || "New chat");
+    if (agent.session !== undefined) {
+      replaceSessionRoute(agent.session.sessionId);
+      history.record(agent.session.sessionId, firstMessage.current);
+    }
     const options = isBusy ? { turnPolicy: "steer" as const } : undefined;
 
     if (message.files.length === 0) {
@@ -150,7 +162,9 @@ export function AgentChat({
   );
 
   return (
-    <main className="bronto-dots flex h-dvh flex-col overflow-hidden bg-background text-foreground">
+    <main className="bronto-dots flex h-dvh flex-col overflow-hidden bg-background text-foreground lg:pl-64">
+      <HistorySidebar activeId={activeSessionId} entries={history.entries} onRemove={history.remove} />
+      <MobileHistory activeId={activeSessionId} entries={history.entries} onRemove={history.remove} />
       {showConversationLayout ? (
         <ChatHeader canStartNewChat={activeSessionId !== undefined} />
       ) : null}
@@ -172,19 +186,26 @@ export function AgentChat({
               showPendingThinking &&
               isPendingAssistantShell &&
               message.id === lastMessage.id ? null : (
-                <AgentMessage
-                  canRespond={canRespond}
-                  isStreaming={
-                    agent.status === "streaming" && index === agent.data.messages.length - 1
-                  }
+                <div
+                  className={cn("flex items-start gap-3", message.role === "user" && "flex-row-reverse")}
                   key={message.id}
-                  message={message}
-                  questionsFor={questionsFor}
-                  onInputResponses={(inputResponses) => {
-                    setCancellationError(undefined);
-                    return agent.respond(inputResponses);
-                  }}
-                />
+                >
+                  {message.role === "user" ? <UserAvatar user={user} /> : <AssistantAvatar />}
+                  <div className="min-w-0 flex-1 pt-1">
+                    <AgentMessage
+                      canRespond={canRespond}
+                      isStreaming={
+                        agent.status === "streaming" && index === agent.data.messages.length - 1
+                      }
+                      message={message}
+                      questionsFor={questionsFor}
+                      onInputResponses={(inputResponses) => {
+                        setCancellationError(undefined);
+                        return agent.respond(inputResponses);
+                      }}
+                    />
+                  </div>
+                </div>
               ),
             )}
             {showPendingThinking ? <PendingThinking /> : null}
@@ -198,7 +219,7 @@ export function AgentChat({
         className={cn(
           "mx-auto w-full px-4 sm:px-6",
           showConversationLayout
-            ? "fixed bottom-0 left-1/2 z-20 max-w-3xl -translate-x-1/2 bg-gradient-to-t from-background via-background to-transparent pt-4 pb-6"
+            ? "fixed bottom-0 left-1/2 z-20 max-w-3xl -translate-x-1/2 lg:left-[calc(50%+8rem)] bg-gradient-to-t from-background via-background to-transparent pt-4 pb-6"
             : "flex max-w-xl flex-1 flex-col items-center justify-center gap-8 pb-[10vh]",
         )}
       >
@@ -291,10 +312,10 @@ function ErrorMessage({ message }: { readonly message: string }) {
 
 function ChatHeader({ canStartNewChat }: { readonly canStartNewChat: boolean }) {
   return (
-    <header className="pointer-events-none fixed top-0 right-0 left-0 z-20 h-14">
+    <header className="pointer-events-none fixed top-0 right-0 left-0 z-10 h-14 lg:left-64">
       <div className="relative mx-auto flex h-full w-full max-w-3xl items-center justify-center gap-3 bg-background px-24">
-        <BrontoLogo className="h-5" />
-        <span aria-hidden="true" className="text-border">/</span>
+        <BrontoLogo className="h-5 lg:hidden" />
+        <span aria-hidden="true" className="text-border lg:hidden">/</span>
         <span className="truncate font-semibold font-serif text-base">PetClinic assistant</span>
         {canStartNewChat ? (
           <Button
@@ -353,4 +374,9 @@ function getLatestTurnFailure(
   }
 
   return undefined;
+}
+
+function toTitle(text: string): string {
+  const oneLine = text.replace(/\s+/g, " ").trim();
+  return oneLine.length > 70 ? `${oneLine.slice(0, 67)}…` : oneLine;
 }

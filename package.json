@@ -46,8 +46,8 @@
   "scripts": {
     "dev:web": "next dev apps/web",
     "build:web": "next build apps/web",
-    "dev": "eve dev",
-    "dev:eve": "eve dev",
+    "dev": "NODE_ENV=development eve dev",
+    "dev:eve": "NODE_ENV=development eve dev",
     "dev:all": "vercel dev --local"
   },
   "devDependencies": {
