@@ -23,10 +23,14 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
+import { BrontoLogo, Eyebrow } from "./brand";
 import { WEB_CHAT_AGENT } from "@/app/eve-agent";
 
-const DEFAULT_AGENT_NAME = "eve-agent";
-const AGENT_NAME = WEB_CHAT_AGENT ?? DEFAULT_AGENT_NAME;
+const EXAMPLES = [
+  "Which vets do surgery?",
+  "I'm Betty Davis. What visits has my hamster Basil had?",
+  "I'm Betty Davis, please book a check-up for Basil next Tuesday.",
+];
 
 export function AgentChat({
   sessionId,
@@ -134,7 +138,7 @@ export function AgentChat({
       <PromptInputTextarea
         disabled={isResuming}
         onChange={(event) => setHasInputText(event.currentTarget.value.trim().length > 0)}
-        placeholder="Send a message…"
+        placeholder="Ask about vets, your pets or a booking…"
       />
       <ComposerAction
         hasInputText={hasInputText}
@@ -146,7 +150,7 @@ export function AgentChat({
   );
 
   return (
-    <main className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
+    <main className="bronto-dots flex h-dvh flex-col overflow-hidden bg-background text-foreground">
       {showConversationLayout ? (
         <ChatHeader canStartNewChat={activeSessionId !== undefined} />
       ) : null}
@@ -199,14 +203,38 @@ export function AgentChat({
         )}
       >
         {showConversationLayout ? null : (
-          <div className="flex flex-col items-center gap-3 text-center">
-            <h1 className="font-medium text-5xl tracking-tighter">PetClinic</h1>
-            <p className="text-muted-foreground">
-              Book a vet visit. Try: "I'm Betty Davis, please book a check-up for my hamster Basil next Tuesday."
+          <div className="flex flex-col items-center gap-5 text-center">
+            <BrontoLogo className="h-7" />
+            <Eyebrow>Demo · eve on Vercel · PetClinic on AWS</Eyebrow>
+            <h1 className="text-balance font-bold font-serif text-4xl text-foreground leading-[1.05] tracking-tight sm:text-6xl">
+              Book a vet visit, by chat.
+            </h1>
+            <p className="max-w-md text-balance text-muted-foreground">
+              The PetClinic assistant finds your record, shows past visits and books new ones.
             </p>
           </div>
         )}
         <div className="w-full">{composer}</div>
+        {showConversationLayout ? null : (
+          <>
+            <div className="flex flex-wrap justify-center gap-2">
+              {EXAMPLES.map((example) => (
+                <button
+                  className="max-w-full rounded-2xl border border-border bg-card px-3.5 py-1.5 text-left text-foreground text-sm shadow-xs transition-colors hover:border-brand hover:bg-chip disabled:opacity-50"
+                  disabled={isResuming}
+                  key={example}
+                  onClick={() => void handleSubmit({ files: [], text: example })}
+                  type="button"
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
+            <p className="text-center font-mono text-muted-foreground text-xs">
+              Each turn is one trace across Vercel and AWS, stored in Bronto.
+            </p>
+          </>
+        )}
       </div>
     </main>
   );
@@ -264,8 +292,10 @@ function ErrorMessage({ message }: { readonly message: string }) {
 function ChatHeader({ canStartNewChat }: { readonly canStartNewChat: boolean }) {
   return (
     <header className="pointer-events-none fixed top-0 right-0 left-0 z-20 h-14">
-      <div className="relative mx-auto flex h-full w-full max-w-3xl items-center justify-center bg-background px-24">
-        <span className="truncate text-muted-foreground text-sm">{AGENT_NAME}</span>
+      <div className="relative mx-auto flex h-full w-full max-w-3xl items-center justify-center gap-3 bg-background px-24">
+        <BrontoLogo className="h-5" />
+        <span aria-hidden="true" className="text-border">/</span>
+        <span className="truncate font-semibold font-serif text-base">PetClinic assistant</span>
         {canStartNewChat ? (
           <Button
             aria-label="Start a new chat"

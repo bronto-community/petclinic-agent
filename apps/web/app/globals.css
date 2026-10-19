@@ -24,59 +24,71 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --color-chip: var(--chip);
+  --color-bronze: var(--bronze);
+  --color-brand: var(--brand);
 }
 
 /* Not inline: font utilities must read the variables so each host's font loader can override them. */
 @theme {
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+  --font-sans: var(--font-radio-canada), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 :root {
   color-scheme: light;
-  /* Soft neutral page with white elevated surfaces so cards/composer pop. */
-  --background: oklch(0.971 0 0);
-  --foreground: oklch(0.16 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.16 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0 0);
-  --primary: oklch(0.19 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.94 0 0);
-  --secondary-foreground: oklch(0.19 0 0);
-  --muted: oklch(0.94 0 0);
-  --muted-foreground: oklch(0.6 0 0);
-  --accent: oklch(0.94 0 0);
-  --accent-foreground: oklch(0.19 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.916 0 0);
-  --input: oklch(0.916 0 0);
-  --ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
+  /* Bronto palette (bronto.io): cream page, white cards, olive ink, yellow accent. */
+  --background: #F8F7F3;
+  --foreground: #2C2E25;
+  --card: #FFFFFF;
+  --card-foreground: #2C2E25;
+  --popover: #FFFFFF;
+  --popover-foreground: #2C2E25;
+  --primary: #2C2E25;
+  --primary-foreground: #F8F7F3;
+  --secondary: #F1EEE4;
+  --secondary-foreground: #2C2E25;
+  --muted: #F1EEE4;
+  --muted-foreground: #858274;
+  --accent: #F1EEE4;
+  --accent-foreground: #2C2E25;
+  --destructive: #E0574F;
+  --border: #E2DCCB;
+  --input: #E2DCCB;
+  --ring: #F5B719;
+  --radius: 0.75rem;
+  --chip: #FBEFC8;
+  --bronze: #99753F;
+  --brand: #F5B719;
+  --dots: #DDD7C6;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --background: #2C2E25;
+    --foreground: #F1EFE7;
+    --card: #36382E;
+    --card-foreground: #F1EFE7;
+    --popover: #36382E;
+    --popover-foreground: #F1EFE7;
+    --primary: #F5B719;
+    --primary-foreground: #2C2E25;
+    --secondary: #41443A;
+    --secondary-foreground: #F1EFE7;
+    --muted: #41443A;
+    --muted-foreground: #A9A797;
+    --accent: #41443A;
+    --accent-foreground: #F1EFE7;
+    --destructive: #E0574F;
+    --border: #51544A;
+    --input: #51544A;
+    --ring: #F5B719;
+    --chip: #41443A;
+    --bronze: #D8C7A3;
+    --brand: #F5B719;
+    --dots: #41443A;
   }
 }
 
@@ -95,6 +107,22 @@ body {
   margin: 0;
   background: var(--background);
   font-family: var(--font-sans);
+}
+
+/* Dot grid, faded toward the centre, as on bronto.io. */
+.bronto-dots {
+  position: relative;
+  isolation: isolate;
+}
+.bronto-dots::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--dots) 1.4px, transparent 1.8px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(ellipse 75% 70% at 50% 45%, transparent 40%, #000 100%);
 }
 
 button,

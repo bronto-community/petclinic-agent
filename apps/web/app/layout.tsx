@@ -1,23 +1,28 @@
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Radio_Canada_Big, Source_Serif_4 } from "next/font/google";
 import type { ReactNode } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
-const sans = Geist({
-  variable: "--font-sans",
+const sans = Radio_Canada_Big({
+  variable: "--font-radio-canada",
   subsets: ["latin"],
-  weight: "variable",
+  display: "swap",
+});
+
+const serif = Source_Serif_4({
+  variable: "--font-source-serif",
+  subsets: ["latin"],
+  weight: ["600", "700"],
   display: "swap",
 });
 
 const mono = Geist_Mono({
-  variable: "--font-mono",
+  variable: "--font-geist-mono",
   subsets: ["latin"],
-  weight: "variable",
   display: "swap",
 });
 
@@ -28,7 +33,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
   return (
-    <html className={cn(sans.variable, mono.variable)} lang="en">
+    <html className={cn(sans.variable, serif.variable, mono.variable)} lang="en">
       <body>
         <TooltipProvider>{children}</TooltipProvider>
         <Analytics />

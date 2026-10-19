@@ -11,8 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
+import { BrontoLogo } from "./brand";
 
-const AGENT_NAME = "petclinic-agent";
 
 export function SignIn() {
   const [pending, setPending] = useState(false);
@@ -36,13 +36,13 @@ export function SignIn() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background px-8 text-foreground">
+    <main className="bronto-dots flex min-h-dvh items-center justify-center bg-background px-8 text-foreground">
       <div className="flex w-full max-w-[22rem] flex-col gap-5">
-        <div className="text-foreground opacity-[0.08] dark:opacity-[0.12]">
-          <EveWordmark className="h-auto w-[4.875rem]" />
-        </div>
+        <BrontoLogo className="h-7" />
         <section aria-label="Sign in" className="flex flex-col gap-2">
-          <h1 className="max-w-full break-words font-medium text-sm leading-6">{AGENT_NAME}</h1>
+          <h1 className="max-w-full break-words font-bold font-serif text-3xl text-foreground leading-tight tracking-tight">
+            PetClinic assistant
+          </h1>
           <p className="flex flex-wrap items-center gap-2 text-muted-foreground text-sm leading-6">
             <span className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
               <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
@@ -70,23 +70,6 @@ export function SignIn() {
   );
 }
 
-function EveWordmark({ className }: { readonly className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={className}
-      fill="none"
-      viewBox="0 0 169 53"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M169 8.47h-51.39L81.73 53H70.36L113 0H169zM169 44.51v8.47h-45.87V44.5zM45.87 52.98H0V44.5h45.87zM38.66 30.55H0v-8.47h38.66z"
-        fill="currentColor"
-      />
-      <path d="M169 30.55h-38.66v-8.47H169zM75.52 8.47H0V0h75.52z" fill="currentColor" />
-    </svg>
-  );
-}
 
 export function AccountControl({
   email,
