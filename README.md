@@ -67,7 +67,7 @@ Try: "Hi, I'm Betty Davis. Please book a check-up for my hamster Basil next Tues
 ## Deploy
 
 1. **PetClinic on Lightsail:** `OTEL_EXPORTER_OTLP_ENDPOINT=... OTLP_HEADERS='{...}' ./infra/deploy-lightsail.sh`. It prints `PETCLINIC_URL` and `PETCLINIC_API_KEY`.
-2. **Agent on Vercel:** set `PETCLINIC_URL`, `PETCLINIC_API_KEY`, `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS` as project environment variables, then `vercel deploy --prod`.
+2. **Agent on Vercel:** set `PETCLINIC_URL`, `PETCLINIC_API_KEY`, `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS` as project environment variables, then `vercel deploy --prod`. With the project connected to this repository, every push to `main` deploys to production, and the deployment webhook (`/api/vercel-webhook`, secret in `VERCEL_WEBHOOK_SECRET`) forwards each deploy with its commit as an OTLP log record.
 
 ## Configuration
 
