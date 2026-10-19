@@ -5,6 +5,17 @@ services:
       POSTGRES_DB: petclinic
       POSTGRES_USER: petclinic
       POSTGRES_PASSWORD: petclinic
+    # JSON logs in $PGDATA/log, with every statement slower than 100 ms.
+    command:
+      - postgres
+      - -c
+      - logging_collector=on
+      - -c
+      - log_destination=jsonlog
+      - -c
+      - log_file_mode=0644
+      - -c
+      - log_min_duration_statement=100
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -27,8 +38,7 @@ services:
       OTEL_SERVICE_NAME: petclinic
       OTEL_RESOURCE_ATTRIBUTES: service.namespace=petclinic-agent,deployment.environment.name=${ENVIRONMENT:-local}
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}
-      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
     restart: unless-stopped
 
@@ -40,11 +50,34 @@ services:
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-:8080}
       PETCLINIC_API_KEY: ${PETCLINIC_API_KEY:?set PETCLINIC_API_KEY}
+      OTEL_SERVICE_NAME: caddy
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=petclinic-agent,deployment.environment.name=${ENVIRONMENT:-local}
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
+      - caddy_logs:/var/log/caddy
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.163.1
+    command: ["--config=/etc/otelcol/config.yaml"]
+    # Root, to read the host's /proc and Postgres's log directory (mode 0700).
+    user: "0"
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:?set OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTLP_HEADERS: ${OTLP_HEADERS:-{}}
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol/config.yaml:ro
+      - /:/hostfs:ro
+      - caddy_logs:/var/log/caddy:ro
+      - pgdata:/pgdata:ro
     restart: unless-stopped
 
 volumes:
   pgdata:
   caddy_data:
+  caddy_logs:

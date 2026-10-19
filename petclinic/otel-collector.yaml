@@ -1,0 +1,53 @@
+# OpenTelemetry Collector next to PetClinic: the stack's single exit to the OTLP backend.
+#   in:  OTLP from PetClinic (Java agent) and Caddy, Caddy access logs,
+#        Postgres logs (slow queries), host metrics
+#   out: OTEL_EXPORTER_OTLP_ENDPOINT with OTLP_HEADERS (a YAML map, e.g. {authorization: "Bearer abc"})
+receivers:
+  otlp:
+    protocols:
+      grpc: { endpoint: 0.0.0.0:4317 }
+      http: { endpoint: 0.0.0.0:4318 }
+  host_metrics:
+    root_path: /hostfs
+    collection_interval: 30s
+    scrapers:
+      cpu: {}
+      load: {}
+      memory: {}
+      disk: {}
+      filesystem: {}
+      network: {}
+  file_log/caddy:
+    include: [/var/log/caddy/access.log]
+    start_at: end
+    resource: { service.name: caddy }
+    operators:
+      - type: json_parser
+        timestamp: { parse_from: attributes.ts, layout_type: epoch, layout: s.ns }
+        severity: { parse_from: attributes.level }
+  file_log/postgres:
+    include: [/pgdata/log/*.json]
+    start_at: end
+    resource: { service.name: postgres }
+    operators:
+      - type: json_parser
+        timestamp: { parse_from: attributes.timestamp, layout: "%Y-%m-%d %H:%M:%S.%L %Z" }
+        severity: { parse_from: attributes.error_severity }
+
+processors:
+  resource:
+    attributes:
+      - { key: service.namespace, value: petclinic-agent, action: upsert }
+      - { key: deployment.environment.name, value: "${env:ENVIRONMENT:-local}", action: upsert }
+  batch: {}
+
+exporters:
+  otlp_http:
+    endpoint: ${env:OTEL_EXPORTER_OTLP_ENDPOINT}
+    headers: ${env:OTLP_HEADERS}
+
+service:
+  pipelines:
+    traces: { receivers: [otlp], processors: [resource, batch], exporters: [otlp_http] }
+    metrics: { receivers: [otlp, host_metrics], processors: [resource, batch], exporters: [otlp_http] }
+    logs: { receivers: [otlp, file_log/caddy, file_log/postgres], processors: [resource, batch], exporters: [otlp_http] }

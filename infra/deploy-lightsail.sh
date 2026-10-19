@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Deploys PetClinic (petclinic/compose.yaml) to one AWS Lightsail instance.
 #
-#   OTEL_EXPORTER_OTLP_ENDPOINT=https://... OTEL_EXPORTER_OTLP_HEADERS=... ./infra/deploy-lightsail.sh
+#   OTEL_EXPORTER_OTLP_ENDPOINT=https://... OTLP_HEADERS='{authorization: "Bearer ..."}' ./infra/deploy-lightsail.sh
 #
 # Creates a 2 GB instance (small_3_0, $12/month) and a static IP (free while
 # attached), opens ports 80 and 443, and boots the compose stack with Caddy
@@ -14,7 +14,8 @@ NAME="${NAME:-petclinic}"
 BUNDLE="${BUNDLE:-small_3_0}"
 REPO="${REPO:-https://github.com/bronto-community/petclinic-agent.git}"
 : "${OTEL_EXPORTER_OTLP_ENDPOINT:?set OTEL_EXPORTER_OTLP_ENDPOINT (your OTLP/HTTP backend)}"
-OTEL_EXPORTER_OTLP_HEADERS="${OTEL_EXPORTER_OTLP_HEADERS:-}"
+OTLP_HEADERS="${OTLP_HEADERS:-}"
+[ -n "$OTLP_HEADERS" ] || OTLP_HEADERS="{}"
 PETCLINIC_API_KEY="${PETCLINIC_API_KEY:-$(openssl rand -hex 24)}"
 ls() { aws lightsail --region "$REGION" "$@"; }
 
@@ -32,7 +33,7 @@ cd /opt/petclinic-agent/petclinic
 cat > .env <<ENV
 PETCLINIC_API_KEY=$PETCLINIC_API_KEY
 OTEL_EXPORTER_OTLP_ENDPOINT=$OTEL_EXPORTER_OTLP_ENDPOINT
-OTEL_EXPORTER_OTLP_HEADERS=$OTEL_EXPORTER_OTLP_HEADERS
+OTLP_HEADERS=$OTLP_HEADERS
 SITE_ADDRESS=$HOST
 ENVIRONMENT=production
 ENV

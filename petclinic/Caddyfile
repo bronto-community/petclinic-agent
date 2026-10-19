@@ -1,6 +1,20 @@
 # Public entry point. Only requests carrying the shared key reach PetClinic.
 # SITE_ADDRESS is ":8080" locally (plain HTTP) and a hostname on AWS (automatic HTTPS).
 {$SITE_ADDRESS::8080} {
+	# A span per request, continuing the caller's traceparent; exported via OTEL_EXPORTER_OTLP_*.
+	tracing {
+		span caddy
+	}
+	# JSON access log, read by the OpenTelemetry Collector. The shared key never reaches the log.
+	log {
+		output file /var/log/caddy/access.log
+		format filter {
+			wrap json
+			fields {
+				request>headers>X-Petclinic-Key delete
+			}
+		}
+	}
 	@authorized header X-PetClinic-Key {$PETCLINIC_API_KEY}
 	handle @authorized {
 		reverse_proxy petclinic:9966
