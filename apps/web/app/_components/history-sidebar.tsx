@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { AppMark } from "./brand";
+import { AppMark, RepoLink } from "./brand";
 import type { ChatHistoryEntry } from "./chat-history";
 
 type HistoryProps = {
@@ -81,6 +81,9 @@ export function HistorySidebar(props: HistoryProps) {
       <nav aria-label="Chat history" className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
         <HistoryList {...props} />
       </nav>
+      <div className="border-border border-t px-6 py-3">
+        <RepoLink />
+      </div>
     </aside>
   );
 }
@@ -101,6 +104,7 @@ export function MobileHistory(props: HistoryProps) {
         </DialogHeader>
         <NewChatButton />
         <HistoryList {...props} />
+        <RepoLink className="mt-2" />
       </DialogContent>
     </Dialog>
   );

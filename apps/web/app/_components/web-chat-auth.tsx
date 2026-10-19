@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
-import { AppMark } from "./brand";
+import { AppMark, RepoLink } from "./brand";
 
 
 export function SignIn() {
@@ -65,6 +65,7 @@ export function SignIn() {
             </p>
           ) : null}
         </section>
+        <RepoLink />
       </div>
     </main>
   );
