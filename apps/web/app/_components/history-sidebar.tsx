@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { BrontoLogo } from "./brand";
+import { AppMark } from "./brand";
 import type { ChatHistoryEntry } from "./chat-history";
 
 type HistoryProps = {
@@ -72,7 +72,7 @@ export function HistorySidebar(props: HistoryProps) {
   return (
     <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-border border-r bg-card/70 backdrop-blur lg:flex">
       <div className="flex h-14 items-center justify-end px-4">
-        <BrontoLogo className="h-5" />
+        <AppMark size="sm" />
       </div>
       <div className="px-3 pb-3">
         <NewChatButton />

@@ -1,6 +1,6 @@
 import { otel } from "eve/instrumentation/otel";
 
-// Service name and namespace match PetClinic's, so both sides group together in Bronto.
+// Service name and namespace match PetClinic's, so both sides group together in the backend.
 export default otel({
   resource: {
     "service.name": "petclinic-agent",

@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
-import { BrontoLogo } from "./brand";
+import { AppMark } from "./brand";
 
 
 export function SignIn() {
@@ -36,9 +36,9 @@ export function SignIn() {
   }
 
   return (
-    <main className="bronto-dots flex min-h-dvh items-center justify-center bg-background px-8 text-foreground">
+    <main className="dot-grid flex min-h-dvh items-center justify-center bg-background px-8 text-foreground">
       <div className="flex w-full max-w-[22rem] flex-col gap-5">
-        <BrontoLogo className="h-7" />
+        <AppMark />
         <section aria-label="Sign in" className="flex flex-col gap-2">
           <h1 className="max-w-full break-words font-bold font-serif text-3xl text-foreground leading-tight tracking-tight">
             PetClinic assistant

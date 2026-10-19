@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
 import { AssistantAvatar, type ChatUser, UserAvatar } from "./avatars";
-import { BrontoLogo, Eyebrow } from "./brand";
+import { AppMark, Eyebrow } from "./brand";
 import { useChatHistory } from "./chat-history";
 import { HistorySidebar, MobileHistory } from "./history-sidebar";
 import { WEB_CHAT_AGENT } from "@/app/eve-agent";
@@ -162,7 +162,7 @@ export function AgentChat({
   );
 
   return (
-    <main className="bronto-dots flex h-dvh flex-col overflow-hidden bg-background text-foreground lg:pl-64">
+    <main className="dot-grid flex h-dvh flex-col overflow-hidden bg-background text-foreground lg:pl-64">
       <HistorySidebar activeId={activeSessionId} entries={history.entries} onRemove={history.remove} />
       <MobileHistory activeId={activeSessionId} entries={history.entries} onRemove={history.remove} />
       {showConversationLayout ? (
@@ -225,7 +225,7 @@ export function AgentChat({
       >
         {showConversationLayout ? null : (
           <div className="flex flex-col items-center gap-5 text-center">
-            <BrontoLogo className="h-7" />
+            <AppMark />
             <Eyebrow>Demo · eve on Vercel · PetClinic on AWS</Eyebrow>
             <h1 className="text-balance font-bold font-serif text-4xl text-foreground leading-[1.05] tracking-tight sm:text-6xl">
               Book a vet visit, by chat.
@@ -252,7 +252,7 @@ export function AgentChat({
               ))}
             </div>
             <p className="text-center font-mono text-muted-foreground text-xs">
-              Each turn is one trace across Vercel and AWS, stored in Bronto.
+              Each turn is one OpenTelemetry trace across Vercel and AWS.
             </p>
           </>
         )}
@@ -314,9 +314,8 @@ function ChatHeader({ canStartNewChat }: { readonly canStartNewChat: boolean }) 
   return (
     <header className="pointer-events-none fixed top-0 right-0 left-0 z-10 h-14 lg:left-64">
       <div className="relative mx-auto flex h-full w-full max-w-3xl items-center justify-center gap-3 bg-background px-24">
-        <BrontoLogo className="h-5 lg:hidden" />
-        <span aria-hidden="true" className="text-border lg:hidden">/</span>
-        <span className="truncate font-semibold font-serif text-base">PetClinic assistant</span>
+        <AppMark className="lg:hidden" size="sm" />
+        <span className="hidden truncate font-semibold font-serif text-base lg:inline">PetClinic assistant</span>
         {canStartNewChat ? (
           <Button
             aria-label="Start a new chat"

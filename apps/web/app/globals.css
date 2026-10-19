@@ -38,7 +38,7 @@
 
 :root {
   color-scheme: light;
-  /* Bronto palette (bronto.io): cream page, white cards, olive ink, yellow accent. */
+  /* Warm palette: cream page, white cards, olive ink, yellow accent. */
   --background: #F8F7F3;
   --foreground: #2C2E25;
   --card: #FFFFFF;
@@ -109,12 +109,12 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Dot grid, faded toward the centre, as on bronto.io. */
-.bronto-dots {
+/* Dot grid, faded toward the centre. */
+.dot-grid {
   position: relative;
   isolation: isolate;
 }
-.bronto-dots::before {
+.dot-grid::before {
   content: "";
   position: absolute;
   inset: 0;
