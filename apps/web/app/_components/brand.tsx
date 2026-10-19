@@ -21,14 +21,6 @@ export function AppMark({ className, size = "md" }: { readonly className?: strin
   );
 }
 
-/** Small pill label. */
-export function Eyebrow({ children }: { readonly children: React.ReactNode }) {
-  return (
-    <span className="inline-flex max-w-full items-center rounded-full bg-chip px-3 py-1.5 text-center font-mono text-bronze text-xs tracking-wide">
-      {children}
-    </span>
-  );
-}
 
 export const REPO_URL =
   process.env.NEXT_PUBLIC_REPO_URL ?? "https://github.com/bronto-community/petclinic-agent";

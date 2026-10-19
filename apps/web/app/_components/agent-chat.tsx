@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
 import { AssistantAvatar, type ChatUser, UserAvatar } from "./avatars";
-import { AppMark, Eyebrow, RepoLink } from "./brand";
+import { AppMark, RepoLink } from "./brand";
 import { useChatHistory } from "./chat-history";
 import { HistorySidebar, MobileHistory } from "./history-sidebar";
 import { WEB_CHAT_AGENT } from "@/app/eve-agent";
@@ -226,7 +226,6 @@ export function AgentChat({
         {showConversationLayout ? null : (
           <div className="flex flex-col items-center gap-5 text-center">
             <AppMark />
-            <Eyebrow>Demo · eve on Vercel · PetClinic on AWS</Eyebrow>
             <h1 className="text-balance font-bold font-serif text-4xl text-foreground leading-[1.05] tracking-tight sm:text-6xl">
               Book a vet visit, by chat.
             </h1>
@@ -251,12 +250,7 @@ export function AgentChat({
                 </button>
               ))}
             </div>
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-center font-mono text-muted-foreground text-xs">
-                Each turn is one OpenTelemetry trace across Vercel and AWS.
-              </p>
-              <RepoLink />
-            </div>
+            <RepoLink />
           </>
         )}
       </div>
