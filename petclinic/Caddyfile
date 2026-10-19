@@ -1,0 +1,9 @@
+# Public entry point. Only requests carrying the shared key reach PetClinic.
+# SITE_ADDRESS is ":8080" locally (plain HTTP) and a hostname on AWS (automatic HTTPS).
+{$SITE_ADDRESS::8080} {
+	@authorized header X-PetClinic-Key {$PETCLINIC_API_KEY}
+	handle @authorized {
+		reverse_proxy petclinic:9966
+	}
+	respond "unauthorized" 401
+}

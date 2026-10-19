@@ -1,0 +1,6 @@
+# On AWS: Caddy serves the public hostname with automatic HTTPS.
+services:
+  caddy:
+    ports:
+      - "80:80"
+      - "443:443"

@@ -1,0 +1,82 @@
+# petclinic-agent
+
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
+A booking assistant for the [Spring PetClinic](https://github.com/spring-petclinic/spring-petclinic-rest) sample app, built to show how one request is traced across Vercel and a backend that runs somewhere else.
+
+- **On Vercel:** an [eve](https://eve.dev) agent. It finds owners, lists vets and books visits by calling the PetClinic REST API.
+- **On AWS Lightsail:** PetClinic, unchanged, with Postgres and the [OpenTelemetry Java agent](https://opentelemetry.io/docs/zero-code/java/agent/).
+- **In [Bronto](https://bronto.io):** traces from both sides, joined into one trace by the W3C `traceparent` header the agent sends with every call.
+
+A community project from Bronto; not an official product of, or endorsed by, the integrated services.
+
+## How it works
+
+```
+Browser / HTTP ──▶ eve agent (Vercel) ──traceparent──▶ PetClinic (Lightsail) ──▶ Postgres
+                         │                                   │
+                         └──── OTLP traces ──▶ Bronto ◀──── OTLP traces, metrics, logs
+```
+
+One agent turn in Bronto:
+
+```
+invoke_agent petclinic-agent                          petclinic-agent
+├─ chat anthropic/claude-sonnet-5.5                   petclinic-agent
+├─ execute_tool find_owner                            petclinic-agent
+│  └─ GET /petclinic/api/owners                       petclinic
+│     └─ SpringDataOwnerRepository.findByLastName     petclinic
+│        └─ SELECT petclinic.owners …                 petclinic
+└─ chat anthropic/claude-sonnet-5.5                   petclinic-agent
+```
+
+Vercel's own views (Observability, Agent Runs) show the agent side only. Vercel has no way to take in telemetry from services that run elsewhere.
+
+## Repository layout
+
+| Path | What it is |
+| --- | --- |
+| `agent/` | The eve agent: instructions, four tools, OpenTelemetry export to Bronto |
+| `agent/lib/petclinic.ts` | PetClinic client; injects `traceparent` into every request |
+| `petclinic/` | Docker Compose stack: PetClinic + Java agent, Postgres, Caddy (HTTPS, shared-key check) |
+| `infra/deploy-lightsail.sh` | Creates the Lightsail instance and starts the stack |
+
+## Run locally
+
+Requires Node.js 24, pnpm and Docker.
+
+```bash
+cp petclinic/.env.example petclinic/.env     # set BRONTO_API_KEY, or OTEL_SDK_DISABLED=true
+docker compose -f petclinic/compose.yaml up -d --build
+
+pnpm install
+vercel link && vercel env pull .env.local   # AI Gateway access via OIDC
+cat >> .env.local <<ENV
+PETCLINIC_URL=http://localhost:8088/petclinic/api
+PETCLINIC_API_KEY=<same as petclinic/.env>
+BRONTO_REGION=eu
+BRONTO_API_KEY=<your key>
+ENV
+pnpm exec eve dev
+```
+
+Try: "Hi, I'm Betty Davis. Please book a check-up for my hamster Basil next Tuesday."
+
+## Deploy
+
+1. **PetClinic on Lightsail:** `BRONTO_API_KEY=... ./infra/deploy-lightsail.sh`. It prints `PETCLINIC_URL` and `PETCLINIC_API_KEY`.
+2. **Agent on Vercel:** set `PETCLINIC_URL`, `PETCLINIC_API_KEY`, `BRONTO_REGION` and `BRONTO_API_KEY` as project environment variables, then `vercel deploy --prod`.
+
+## Configuration
+
+| Variable | Where | Purpose |
+| --- | --- | --- |
+| `PETCLINIC_URL` | agent | PetClinic API base URL, ending in `/petclinic/api` |
+| `PETCLINIC_API_KEY` | agent, petclinic | Shared key, sent as `X-PetClinic-Key` and checked by Caddy |
+| `BRONTO_REGION` | agent, petclinic | `eu` or `us` |
+| `BRONTO_API_KEY` | agent, petclinic | Bronto API key with the Ingestion role. Without it, the agent exports nothing |
+| `EVE_MODEL` | agent | AI Gateway model ID, default `anthropic/claude-sonnet-5.5` |
+
+## License
+
+[Apache-2.0](LICENSE)
