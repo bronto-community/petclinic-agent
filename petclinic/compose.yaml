@@ -39,6 +39,9 @@ services:
       OTEL_RESOURCE_ATTRIBUTES: service.namespace=petclinic-agent,deployment.environment.name=${ENVIRONMENT:-local}
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      # Stable database conventions (db.system.name, db.namespace, db.query.text, ...);
+      # HTTP conventions are already stable by default in Java agent 2.x.
+      OTEL_SEMCONV_STABILITY_OPT_IN: database
       OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
     restart: unless-stopped
 

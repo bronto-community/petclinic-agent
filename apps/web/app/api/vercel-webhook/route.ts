@@ -1,8 +1,10 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { otlpEndpoint, otlpHeaders } from "@/lib/otlp";
 
-// Receives Vercel deployment webhooks and forwards each event as an OTLP log record,
-// so deploys show up as markers next to the app's traces and logs.
+// Receives Vercel deployment webhooks and forwards each event as an OTLP event
+// (a log record with eventName), so deploys show up as markers next to the app's
+// traces and logs. vcs.* attributes follow the OpenTelemetry semantic conventions;
+// fields the conventions don't define use the vercel.* namespace.
 // Webhooks: https://vercel.com/docs/webhooks (signature: HMAC-SHA1 of the body, hex).
 
 type DeploymentEvent = {
@@ -54,18 +56,24 @@ function validSignature(body: string, signature: string | null, secret: string):
 function toOtlpLog(event: DeploymentEvent) {
   const deployment = event.payload?.deployment;
   const meta = deployment?.meta ?? {};
+  const repository =
+    meta.githubOrg && meta.githubRepo ? `https://github.com/${meta.githubOrg}/${meta.githubRepo}` : undefined;
   const attributes: Record<string, string | undefined> = {
-    "event.name": event.type,
     "vercel.event.id": event.id,
     "vercel.project.id": event.payload?.project?.id,
     "vercel.project.name": deployment?.name,
     "vercel.deployment.id": deployment?.id,
     "vercel.deployment.url": deployment?.url,
     "vercel.target": event.payload?.target ?? undefined,
+    "vcs.provider.name": repository ? "github" : undefined,
+    "vcs.owner.name": meta.githubOrg,
+    "vcs.repository.name": meta.githubRepo,
+    "vcs.repository.url.full": repository,
     "vcs.ref.head.name": meta.githubCommitRef,
+    "vcs.ref.head.type": meta.githubCommitRef ? "branch" : undefined,
     "vcs.ref.head.revision": meta.githubCommitSha,
-    "vcs.commit.message": meta.githubCommitMessage,
-    "vcs.commit.author": meta.githubCommitAuthorLogin,
+    "vercel.git.commit.message": meta.githubCommitMessage,
+    "vercel.git.commit.author": meta.githubCommitAuthorLogin,
   };
   const failed = event.type === "deployment.error";
   return {
@@ -83,6 +91,7 @@ function toOtlpLog(event: DeploymentEvent) {
             logRecords: [
               {
                 timeUnixNano: String(event.createdAt * 1_000_000),
+                eventName: event.type,
                 severityNumber: failed ? 17 : 9,
                 severityText: failed ? "ERROR" : "INFO",
                 body: {
