@@ -1,15 +1,27 @@
 import { eveChannel } from "eve/channels/eve";
-import { localDev, placeholderAuth, vercelOidc } from "eve/channels/auth";
+import { localDev, type AuthFn, vercelOidc } from "eve/channels/auth";
+import { auth } from "../../apps/web/lib/auth.js";
+
+const betterAuthSession: AuthFn<Request> = async (request) => {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) return null;
+
+  const attributes: Record<string, string> = {
+    email: session.user.email,
+    name: session.user.name,
+  };
+  if (session.user.image) {
+    attributes.picture = session.user.image;
+  }
+
+  return {
+    attributes,
+    authenticator: "better-auth:vercel",
+    principalId: session.user.id,
+    principalType: "user",
+  };
+};
 
 export default eveChannel({
-  auth: [
-    // Lets the eve TUI and your Vercel deployments reach the deployed agent.
-    vercelOidc(),
-    // Open on localhost for `eve dev` and the REPL; ignored in production.
-    localDev(),
-    // This placeholder will not allow browser requests in production.
-    // Replace it with your app's auth provider, like Auth.js or Clerk,
-    // or use none() for a public demo.
-    placeholderAuth(),
-  ],
+  auth: [betterAuthSession, vercelOidc(), localDev()],
 });
