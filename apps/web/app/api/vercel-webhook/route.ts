@@ -61,7 +61,7 @@ function toOtlpLog(event: DeploymentEvent) {
     "vercel.project.name": deployment?.name,
     "vercel.deployment.id": deployment?.id,
     "vercel.deployment.url": deployment?.url,
-    "vercel.target": event.payload?.target ?? "preview",
+    "vercel.target": event.payload?.target ?? undefined,
     "vcs.ref.head.name": meta.githubCommitRef,
     "vcs.ref.head.revision": meta.githubCommitSha,
     "vcs.commit.message": meta.githubCommitMessage,
@@ -86,7 +86,7 @@ function toOtlpLog(event: DeploymentEvent) {
                 severityNumber: failed ? 17 : 9,
                 severityText: failed ? "ERROR" : "INFO",
                 body: {
-                  stringValue: `${event.type} ${deployment?.name ?? ""} ${event.payload?.target ?? "preview"} ${deployment?.url ?? ""}`.trim(),
+                  stringValue: [event.type, deployment?.name, event.payload?.target, deployment?.url].filter(Boolean).join(" "),
                 },
                 attributes: Object.entries(attributes)
                   .filter((entry): entry is [string, string] => Boolean(entry[1]))
