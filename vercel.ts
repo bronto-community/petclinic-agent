@@ -22,5 +22,8 @@ const services = config.services as Record<string, Record<string, unknown>>;
 for (const service of Object.values(services)) {
   service.functions = { ...(service.functions as object | undefined), "**/*": { regions: ["dub1"] } };
 }
+// eve writes its own Build Output, which ignores `functions`; patch its function configs instead.
+const eve = services.eve as { buildCommand: string };
+eve.buildCommand += " && node scripts/patch-eve-vercel-output.mjs .eve/vercel-services/eve/.vercel/output";
 
 export default config;
