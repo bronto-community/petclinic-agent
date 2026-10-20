@@ -2,12 +2,14 @@
 
 Accepts Vercel log drain deliveries (NDJSON or JSON), appends one line per delivery to
 /data/deliveries.jsonl (time, status returned, record ids), and answers 500 while the
-file /data/fail exists. Requests must carry X-Sink-Key.
+file /data/fail exists. ?fail=on / ?fail=off switches that mode. Requests must carry
+X-Sink-Key.
 """
 import json
 import os
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlparse
 
 KEY = os.environ["SINK_KEY"]
 DATA = "/data"
@@ -17,6 +19,15 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.headers.get("x-sink-key") != KEY:
             self.send_response(401)
+            self.end_headers()
+            return
+        mode = parse_qs(urlparse(self.path).query).get("fail", [None])[0]
+        if mode in ("on", "off"):
+            if mode == "on":
+                open(f"{DATA}/fail", "w").close()
+            elif os.path.exists(f"{DATA}/fail"):
+                os.remove(f"{DATA}/fail")
+            self.send_response(204)
             self.end_headers()
             return
         body = self.rfile.read(int(self.headers.get("content-length", 0))).decode("utf-8", "replace")
