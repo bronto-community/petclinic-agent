@@ -1,7 +1,10 @@
-# On AWS: Caddy serves the public hostname with automatic HTTPS, and a synthetic
-# browser visits the chat page (Web Analytics, Speed Insights).
+# On AWS: Caddy serves the public hostname with automatic HTTPS, a synthetic browser
+# visits the chat page (Web Analytics, Speed Insights), and a drain sink receives a
+# test log drain for the delivery-failure test.
 services:
   caddy:
+    environment:
+      SINK_KEY: ${SINK_KEY:-}
     ports:
       - "80:80"
       - "443:443"
@@ -15,3 +18,14 @@ services:
     mem_limit: 768m
     # Exits on its own after STOP_AT; don't restart it then.
     restart: on-failure
+
+  drain-sink:
+    build: ./drain-sink
+    environment:
+      SINK_KEY: ${SINK_KEY:-}
+    volumes:
+      - drain_sink:/data
+    restart: unless-stopped
+
+volumes:
+  drain_sink:
