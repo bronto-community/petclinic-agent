@@ -1,8 +1,9 @@
 import { getVercelOidcToken } from "@vercel/oidc";
 
 // Synthetic traffic for the demo, run every minute by a Vercel cron job (vercel.ts).
-// Each run: one agent conversation (1-3 turns), a page load, direct PetClinic calls,
-// and now and then a request the firewall blocks.
+// Each run: 10 agent conversations spread over the minute, 9 on the free plan
+// (anonymous, rule-based model) and 1 on Premium (Vercel OIDC, AI model); a page load,
+// direct PetClinic calls, and now and then a request the firewall blocks.
 //
 // Hard stop: after STOP_AT every run returns immediately, whatever the configuration.
 // The date lives in code on purpose, so no environment variable can extend it.
@@ -11,9 +12,28 @@ const STOP_AT = new Date("2026-10-23T22:00:00Z"); // Saturday 24 Oct, 00:00 Euro
 export const maxDuration = 300;
 
 const USER_AGENT = "petclinic-synthetic/1.0";
+const FREE_PER_RUN = 9;
+const PREMIUM_PER_RUN = 1;
+const SPREAD_MS = 50_000;
 
-// Owners and pets from PetClinic's seed data, plus names that don't exist.
-const SCRIPTS: readonly (readonly string[])[] = [
+// Free plan: what PetClinic Basic can answer, plus questions that get the upgrade hint.
+const FREE_SCRIPTS: readonly (readonly string[])[] = [
+  ["Which vets do surgery?"],
+  ["Which vets do dentistry?"],
+  ["Who are your vets?"],
+  ["I'm Betty Davis. What visits has Basil had?"],
+  ["I'm George Franklin."],
+  ["Hi, this is Jean Coleman."],
+  ["My name is Harold Davis."],
+  ["I'm Peter McTavish. When was George last here?"],
+  ["I'm Jane Smith."],
+  ["Can I book a check-up for Basil next week?"],
+  ["hello"],
+  ["Which vets do radiology?", "I'm Maria Escobito."],
+];
+
+// Premium: owners and pets from PetClinic's seed data, plus names that don't exist.
+const PREMIUM_SCRIPTS: readonly (readonly string[])[] = [
   ["Which vets do surgery?"],
   ["Which vets work at the clinic, and what are their specialties?"],
   ["I'm George Franklin. What pets do I have?", "What visits has Leo had?"],
@@ -39,32 +59,43 @@ export async function GET(request: Request) {
   }
 
   const origin = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL ?? new URL(request.url).host}`;
-  const script = pick(SCRIPTS);
+  const plans = [
+    ...Array.from({ length: FREE_PER_RUN }, () => "free" as const),
+    ...Array.from({ length: PREMIUM_PER_RUN }, () => "premium" as const),
+  ];
 
-  const [conversation] = await Promise.allSettled([
-    runConversation(origin, script),
-    fetch(`${origin}/`, { headers: { "user-agent": USER_AGENT } }),
-    petclinicCalls(),
+  const [conversations] = await Promise.all([
+    Promise.allSettled(
+      plans.map(async (plan) => {
+        await sleep(Math.random() * SPREAD_MS);
+        const script = pick(plan === "free" ? FREE_SCRIPTS : PREMIUM_SCRIPTS);
+        return { plan, script: script[0], turns: await runConversation(origin, script, plan) };
+      }),
+    ),
+    fetch(`${origin}/`, { headers: { "user-agent": USER_AGENT } }).catch(() => {}),
+    petclinicCalls().catch(() => {}),
     Math.random() < 0.1
-      ? fetch(`${origin}${pick(SCANNER_PATHS)}`, { headers: { "user-agent": "sqlmap/1.8" } })
+      ? fetch(`${origin}${pick(SCANNER_PATHS)}`, { headers: { "user-agent": "sqlmap/1.8" } }).catch(() => {})
       : Promise.resolve(),
   ]);
 
-  const result =
-    conversation.status === "fulfilled"
-      ? { turns: conversation.value }
-      : { error: String(conversation.reason) };
-  console.log(JSON.stringify({ msg: "synthetic run", script: script[0], ...result }));
-  return Response.json(result);
+  const summary = { free: 0, premium: 0, failed: 0, errors: [] as string[] };
+  for (const outcome of conversations) {
+    if (outcome.status === "fulfilled") summary[outcome.value.plan] += 1;
+    else {
+      summary.failed += 1;
+      summary.errors.push(String(outcome.reason).slice(0, 120));
+    }
+  }
+  console.log(JSON.stringify({ msg: "synthetic run", ...summary }));
+  return Response.json(summary);
 }
 
 /** Runs one conversation against the agent's HTTP API; returns the turns completed. */
-async function runConversation(origin: string, messages: readonly string[]): Promise<number> {
-  const headers = {
-    authorization: `Bearer ${await getVercelOidcToken()}`,
-    "content-type": "application/json",
-    "user-agent": USER_AGENT,
-  };
+async function runConversation(origin: string, messages: readonly string[], plan: "free" | "premium"): Promise<number> {
+  // Free conversations are anonymous; Premium ones authenticate with the deployment's OIDC token.
+  const headers: Record<string, string> = { "content-type": "application/json", "user-agent": USER_AGENT };
+  if (plan === "premium") headers.authorization = `Bearer ${await getVercelOidcToken()}`;
   const created = await fetch(`${origin}/eve/v1/session`, {
     method: "POST",
     headers,
@@ -124,6 +155,10 @@ async function petclinicCalls() {
   const headers = { "x-petclinic-key": process.env.PETCLINIC_API_KEY ?? "", "user-agent": USER_AGENT };
   await fetch(`${base}/owners?lastName=${encodeURIComponent(pick(OWNER_LOOKUPS))}`, { headers });
   await fetch(`${base}/vets`, { headers });
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function pick<T>(items: readonly T[]): T {
