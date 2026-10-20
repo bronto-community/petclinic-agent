@@ -1,6 +1,17 @@
-# On AWS: Caddy serves the public hostname with automatic HTTPS.
+# On AWS: Caddy serves the public hostname with automatic HTTPS, and a synthetic
+# browser visits the chat page (Web Analytics, Speed Insights).
 services:
   caddy:
     ports:
       - "80:80"
       - "443:443"
+
+  browser:
+    build: ./browser
+    platform: linux/amd64
+    environment:
+      TARGET_URL: ${TARGET_URL:-https://petclinic-agent.vercel.app/}
+    shm_size: 512m
+    mem_limit: 768m
+    # Exits on its own after STOP_AT; don't restart it then.
+    restart: on-failure

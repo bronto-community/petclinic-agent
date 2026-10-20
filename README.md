@@ -42,6 +42,8 @@ Vercel's own views (Observability, Agent Runs) show the agent side only. Vercel 
 | `apps/web/` | Next.js chat page; deployed as a second Vercel service next to the agent (`vercel.ts`) |
 | `agent/lib/petclinic.ts` | PetClinic client; injects `traceparent` into every request |
 | `petclinic/` | Docker Compose stack: PetClinic + Java agent, Postgres, Caddy (HTTPS, shared-key check, tracing), OpenTelemetry Collector (`otel-collector.yaml`) |
+| `petclinic/browser/` | Synthetic visitor on AWS (Playwright): opens the chat page every ~5 minutes as a free-plan user, tagged `utm_source=synthetic`, for Web Analytics and Speed Insights |
+| `apps/web/app/api/synthetic/` | Synthetic traffic on Vercel (cron, every minute): Premium conversations, page loads, PetClinic calls, scanner probes |
 | `infra/deploy-lightsail.sh` | Creates the Lightsail instance and starts the stack |
 
 ## Run locally
