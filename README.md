@@ -43,6 +43,12 @@ Vercel's own views (Observability, Agent Runs) show the agent side only. Vercel 
 | `agent/lib/petclinic.ts` | PetClinic client; injects `traceparent` into every request |
 | `petclinic/` | Docker Compose stack: PetClinic + Java agent, Postgres, Caddy (HTTPS, shared-key check, tracing), OpenTelemetry Collector (`otel-collector.yaml`) |
 | `petclinic/browser/` | Synthetic visitor on AWS (Playwright): opens the chat page every ~5 minutes as a free-plan user, tagged `utm_source=synthetic`, for Web Analytics and Speed Insights |
+| `apps/web/instrumentation.ts` | `@vercel/otel` for the Next.js app; `propagateContextUrls` carries the trace into PetClinic |
+| `apps/web/app/vets/` | An ISR page (revalidate 60 s) that fetches PetClinic; `/clinic` redirects to it, `/petclinic-openapi.yml` is an external rewrite |
+| `apps/web/app/api/chaos/` | Deliberate errors and crashes (`?kind=error`, `?kind=crash`), protected by `CHAOS_SECRET` |
+| `apps/web/app/api/vercel-webhook/` | Forwards Vercel deployment webhooks as OTLP events (deploy markers) |
+| `scripts/patch-eve-vercel-output.mjs` | Sets the region and the server function's `maxDuration` in eve's Build Output |
+| `petclinic/drain-sink/` | Lab only: a log drain receiver that can answer 500, to test failed deliveries |
 | `apps/web/app/api/synthetic/` | Synthetic traffic on Vercel (cron, every minute): Premium conversations, page loads, PetClinic calls, scanner probes |
 | `infra/deploy-lightsail.sh` | Creates the Lightsail instance and starts the stack |
 
