@@ -23,6 +23,7 @@ services:
     build: ./drain-sink
     environment:
       SINK_KEY: ${SINK_KEY:-}
+      DRAIN_SECRET: ${DRAIN_SECRET:-}
     volumes:
       - drain_sink:/data
     restart: unless-stopped
