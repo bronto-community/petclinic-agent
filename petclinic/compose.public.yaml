@@ -1,6 +1,8 @@
-# On AWS: Caddy serves the public hostname with automatic HTTPS, a synthetic browser
-# visits the chat page every minute (Web Analytics), and a drain sink receives a
-# test log drain for the delivery-failure test.
+# On a public host (any VM or server with Docker): Caddy serves the public hostname
+# with automatic HTTPS, a synthetic browser visits the chat page every minute
+# (Web Analytics), and a drain sink receives a test log drain for the
+# delivery-failure test.
+#   docker compose -f compose.yaml -f compose.public.yaml up -d --build
 services:
   caddy:
     environment:

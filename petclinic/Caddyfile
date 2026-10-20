@@ -1,5 +1,5 @@
 # Public entry point. Only requests carrying the shared key reach PetClinic.
-# SITE_ADDRESS is ":8080" locally (plain HTTP) and a hostname on AWS (automatic HTTPS).
+# SITE_ADDRESS is ":8080" locally (plain HTTP) and the public hostname on a server (automatic HTTPS).
 {$SITE_ADDRESS::8080} {
 	# A span per request, continuing the caller's traceparent; exported via OTEL_EXPORTER_OTLP_*.
 	tracing {
@@ -15,7 +15,7 @@
 			}
 		}
 	}
-	# Lab only: a log drain receiver for the delivery-failure test (compose.aws.yaml).
+	# Lab only: a log drain receiver for the delivery-failure test (compose.public.yaml).
 	@sink {
 		path /drain-sink
 		header X-Sink-Key {$SINK_KEY}

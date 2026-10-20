@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Deploys PetClinic (petclinic/compose.yaml) to one AWS Lightsail instance.
+# One way to host PetClinic: a single AWS Lightsail instance. Any Docker host with a
+# public hostname works the same way (see the README).
 #
 #   OTEL_EXPORTER_OTLP_ENDPOINT=https://... OTLP_HEADERS='{authorization: "Bearer ..."}' ./infra/deploy-lightsail.sh
 #
@@ -38,7 +39,7 @@ SITE_ADDRESS=$HOST
 ENVIRONMENT=production
 ENV
 chmod 600 .env
-docker compose -f compose.yaml -f compose.aws.yaml up -d --build
+docker compose -f compose.yaml -f compose.public.yaml up -d --build
 SCRIPT
 )
 
