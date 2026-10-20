@@ -1,13 +1,16 @@
 import { chromium, devices } from "playwright";
 
-// Every ~5 minutes: open the chat page as an anonymous visitor (free plan), click an
-// example question, wait for the answer, sometimes start a new chat, then leave.
+// Every ~minute: a free-plan visitor opens the chat page, clicks an example question,
+// waits for the answer, looks at the vet list, and sometimes starts a second chat.
+// Web Analytics records the page views and custom events. Speed Insights beacons are
+// blocked: its free tier (10,000 events per 30 days) is shared by the whole team, and
+// running out pauses collection for every project.
 // Hard stop: after STOP_AT the loop exits, whatever the configuration.
 const STOP_AT = new Date("2026-10-23T22:00:00Z"); // Saturday 24 Oct, 00:00 Europe/Berlin
 // Every synthetic visit carries utm_source=synthetic, so analytics can tell it apart.
 const TARGET_URL = withUtm(process.env.TARGET_URL ?? "https://petclinic-agent.vercel.app/");
-const INTERVAL_MS = 5 * 60_000;
-const PROFILES = [devices["Desktop Chrome"], devices["Pixel 7"], devices["iPhone 15"]];
+const INTERVAL_MS = Number(process.env.INTERVAL_MS ?? 60_000);
+const PROFILES = [devices["Desktop Chrome"], devices["Pixel 7"], devices["iPhone 15"], devices["Desktop Edge"]];
 
 // ONCE=1 runs a single visit, for testing.
 if (process.env.ONCE) {
@@ -22,7 +25,7 @@ while (Date.now() < STOP_AT.getTime()) {
   } catch (error) {
     console.error(JSON.stringify({ msg: "visit failed", error: String(error) }));
   }
-  const jitter = Math.random() * 60_000;
+  const jitter = Math.random() * 15_000;
   await new Promise((resolve) => setTimeout(resolve, Math.max(0, INTERVAL_MS - (Date.now() - started)) + jitter));
 }
 console.log(JSON.stringify({ msg: "stopped", stopAt: STOP_AT.toISOString() }));
@@ -34,28 +37,36 @@ async function visit() {
   try {
     const profile = PROFILES[Math.floor(Math.random() * PROFILES.length)];
     const context = await browser.newContext({ ...profile, locale: "en-GB" });
+    await context.route(/\/vitals$/, (route) => route.abort());
     const page = await context.newPage();
-    await page.goto(TARGET_URL, { waitUntil: "load" });
 
-    const examples = page.locator("main button.rounded-2xl");
-    await examples.first().waitFor({ timeout: 20_000 });
-    const count = await examples.count();
-    await examples.nth(Math.floor(Math.random() * count)).click();
-    // The answer always ends with the upgrade hint on the free plan.
-    await page.getByText("Sign in for Premium to book visits", { exact: false }).last().waitFor({ timeout: 30_000 });
+    await page.goto(TARGET_URL, { waitUntil: "load" });
+    await askExample(page);
+
+    await page.goto(withUtm(new URL("/vets", TARGET_URL).href), { waitUntil: "load" });
+    await page.waitForTimeout(2_000 + Math.random() * 3_000);
 
     if (Math.random() < 0.5) {
       await page.goto(withUtm(new URL("/s", TARGET_URL).href), { waitUntil: "load" });
-      await page.locator("main button.rounded-2xl").first().click();
-      await page.waitForTimeout(5_000);
+      await askExample(page);
     }
-    // Leaving the page flushes the Web Vitals beacons.
+    // Leaving the page flushes the analytics beacons.
     await page.goto("about:blank");
     await context.close();
     console.log(JSON.stringify({ msg: "visit done", profile: profile.userAgent.slice(0, 40) }));
   } finally {
     await browser.close();
   }
+}
+
+async function askExample(page) {
+  const examples = page.locator("main button.rounded-2xl");
+  await examples.first().waitFor({ timeout: 20_000 });
+  const count = await examples.count();
+  await examples.nth(Math.floor(Math.random() * count)).click();
+  // The answer always ends with the upgrade hint on the free plan.
+  await page.getByText("Sign in for Premium to book visits", { exact: false }).last().waitFor({ timeout: 30_000 });
+  await page.waitForTimeout(1_000 + Math.random() * 2_000);
 }
 
 function withUtm(url) {

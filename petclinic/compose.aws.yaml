@@ -1,5 +1,5 @@
 # On AWS: Caddy serves the public hostname with automatic HTTPS, a synthetic browser
-# visits the chat page (Web Analytics, Speed Insights), and a drain sink receives a
+# visits the chat page every minute (Web Analytics), and a drain sink receives a
 # test log drain for the delivery-failure test.
 services:
   caddy:
