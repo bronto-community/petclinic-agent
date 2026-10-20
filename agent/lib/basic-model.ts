@@ -98,8 +98,9 @@ function decide({ prompt }: LanguageModelV4CallOptions): Reply {
   if (/\b(book|booking|appointment|schedule|reserve)\b/i.test(question)) {
     return { kind: "text", text: `Booking is a Premium feature. ${UPGRADE}` };
   }
+  // "I'm Betty Davis", "this is Davis", "my name is Betty Davis" (straight or curly apostrophe).
   const name = question.match(
-    /\b(?:i'?m|i am|this is|my name is|name'?s)\s+(?:[A-Z][a-z]+\s+)?([A-Z][a-zA-Z'-]+)/,
+    /\b(?:[Ii][’']?m|I am|[Tt]his is|[Mm]y name is|[Nn]ame[’']?s)\s+(?:[A-Z][a-z]+\s+)?([A-Z][a-zA-Z’'-]+)/,
   );
   if (name?.[1]) return { kind: "tool", toolName: "find_owner", input: { lastName: name[1] } };
   if (/\b(vets?|veterinarians?|doctors?|surgery|surgeon|dentist|dentistry|radiology|specialt)/i.test(question)) {
@@ -120,7 +121,7 @@ function describeVets(vets: Vet[], question: string): string {
 
 function describeOwners(owners: Owner[], question: string): string {
   if (owners.length === 0) return `I couldn't find an owner with that name in our records. ${UPGRADE}`;
-  const first = question.match(/\b(?:i'?m|i am|this is|my name is)\s+([A-Z][a-z]+)\s+[A-Z]/)?.[1];
+  const first = question.match(/\b(?:[Ii][’']?m|I am|[Tt]his is|[Mm]y name is)\s+([A-Z][a-z]+)\s+[A-Z]/)?.[1];
   const matches = first ? owners.filter((o) => o.firstName === first) : owners;
   const shown = matches.length > 0 ? matches : owners;
   const blocks = shown.map((owner) => {
