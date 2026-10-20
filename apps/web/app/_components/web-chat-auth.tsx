@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOutIcon } from "lucide-react";
+import { LogOutIcon, SparklesIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,66 +11,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
-import { AppMark, RepoLink } from "./brand";
+import { cn } from "@/lib/utils";
 
 
-export function SignIn() {
+/** Signs in with Vercel; signed-in users get the Premium plan. */
+export function UpgradeButton({ className, size = "default" }: { readonly className?: string; readonly size?: "sm" | "default" }) {
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string>();
+  const [failed, setFailed] = useState(false);
 
   async function signIn() {
     setPending(true);
-    setError(undefined);
+    setFailed(false);
     try {
-      const result = await authClient.signIn.social({
-        callbackURL: "/",
-        provider: "vercel",
-      });
+      const result = await authClient.signIn.social({ callbackURL: window.location.pathname, provider: "vercel" });
       if (!result.error) return;
-      setPending(false);
-      setError("Sign-in failed. Try again.");
     } catch {
-      setPending(false);
-      setError("Sign-in failed. Try again.");
+      // Falls through to the error state below.
     }
+    setPending(false);
+    setFailed(true);
   }
 
   return (
-    <main className="dot-grid flex min-h-dvh items-center justify-center bg-background px-8 text-foreground">
-      <div className="flex w-full max-w-[22rem] flex-col gap-5">
-        <AppMark />
-        <section aria-label="Sign in" className="flex flex-col gap-2">
-          <h1 className="max-w-full break-words font-bold font-serif text-3xl text-foreground leading-tight tracking-tight">
-            PetClinic assistant
-          </h1>
-          <p className="flex flex-wrap items-center gap-2 text-muted-foreground text-sm leading-6">
-            <span className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-              <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
-              Ready
-            </span>
-            <span aria-hidden="true" className="text-border">
-              /
-            </span>
-            <span>Sign in to start a session</span>
-          </p>
-          <Button className="mt-3 w-full gap-2 text-sm" disabled={pending} onClick={signIn}>
-            <svg aria-hidden="true" className="size-3 fill-current" viewBox="0 0 24 20">
-              <path d="M12 0 24 20H0L12 0Z" />
-            </svg>
-            <span className="leading-5">{pending ? "Redirecting…" : "Continue with Vercel"}</span>
-          </Button>
-          {error ? (
-            <p className="text-destructive text-sm" role="alert">
-              {error}
-            </p>
-          ) : null}
-        </section>
-        <RepoLink />
-      </div>
-    </main>
+    <Button className={cn("gap-2", className)} disabled={pending} onClick={signIn} size={size} type="button">
+      <SparklesIcon className="size-3.5" />
+      {pending ? "Redirecting…" : failed ? "Sign-in failed, try again" : "Sign in for Premium"}
+    </Button>
   );
 }
-
 
 export function AccountControl({
   email,

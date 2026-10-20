@@ -2,7 +2,7 @@
 
 import type { UserContent } from "ai";
 import { useEveAgent } from "eve/react";
-import { AlertCircleIcon, BrainIcon, PlusIcon, SquareIcon } from "lucide-react";
+import { AlertCircleIcon, BrainIcon, PlusIcon, SparklesIcon, SquareIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import {
   Conversation,
@@ -26,25 +26,33 @@ import { AgentMessage } from "./agent-message";
 import { AssistantAvatar, type ChatUser, UserAvatar } from "./avatars";
 import { AppMark, RepoLink } from "./brand";
 import { useChatHistory } from "./chat-history";
+import { UpgradeButton } from "./web-chat-auth";
 import { HistorySidebar, MobileHistory } from "./history-sidebar";
 import { WEB_CHAT_AGENT } from "@/app/eve-agent";
 
-const EXAMPLES = [
-  "Which vets do surgery?",
-  "I'm Betty Davis. What visits has my hamster Basil had?",
-  "I'm Betty Davis, please book a check-up for Basil next Tuesday.",
-];
+export type Plan = "free" | "premium";
+
+const EXAMPLES: Record<Plan, readonly string[]> = {
+  free: ["Which vets do surgery?", "I'm Betty Davis. What visits has Basil had?", "Can I book a check-up for Basil?"],
+  premium: [
+    "Which vets do surgery?",
+    "I'm Betty Davis. What visits has my hamster Basil had?",
+    "I'm Betty Davis, please book a check-up for Basil next Tuesday.",
+  ],
+};
 
 export function AgentChat({
+  plan,
   sessionId,
   sessionless = false,
   user,
 }: {
+  readonly plan: Plan;
   readonly sessionId?: string;
   readonly sessionless?: boolean;
   readonly user?: ChatUser;
 }) {
-  const history = useChatHistory(user?.id ?? "local");
+  const history = useChatHistory(user?.id ?? (plan === "free" ? "anonymous" : "local"));
   const firstMessage = useRef<string | undefined>(undefined);
   const [cancellationError, setCancellationError] = useState<string>();
   const [hasInputText, setHasInputText] = useState(false);
@@ -166,7 +174,7 @@ export function AgentChat({
       <HistorySidebar activeId={activeSessionId} entries={history.entries} onRemove={history.remove} />
       <MobileHistory activeId={activeSessionId} entries={history.entries} onRemove={history.remove} />
       {showConversationLayout ? (
-        <ChatHeader canStartNewChat={activeSessionId !== undefined} />
+        <ChatHeader canStartNewChat={activeSessionId !== undefined} plan={plan} />
       ) : null}
 
       {showConversationLayout ? (
@@ -230,15 +238,23 @@ export function AgentChat({
               Book a vet visit, by chat.
             </h1>
             <p className="max-w-md text-balance text-muted-foreground">
-              The PetClinic assistant finds your record, shows past visits and books new ones.
+              {plan === "premium"
+                ? "The PetClinic assistant finds your record, shows past visits and books new ones."
+                : "On the free plan, PetClinic Basic lists our vets and your pets' visits. Premium adds the AI assistant and bookings."}
             </p>
+            <PlanBadge plan={plan} />
           </div>
         )}
         <div className="w-full">{composer}</div>
+        {showConversationLayout && plan === "free" ? (
+          <p className="mt-2 text-center text-muted-foreground text-xs">
+            Free plan · PetClinic Basic (rule-based, no AI) · Sign in for Premium to book visits.
+          </p>
+        ) : null}
         {showConversationLayout ? null : (
           <>
             <div className="flex flex-wrap justify-center gap-2">
-              {EXAMPLES.map((example) => (
+              {EXAMPLES[plan].map((example) => (
                 <button
                   className="max-w-full rounded-2xl border border-border bg-card px-3.5 py-1.5 text-left text-foreground text-sm shadow-xs transition-colors hover:border-brand hover:bg-chip disabled:opacity-50"
                   disabled={isResuming}
@@ -250,6 +266,7 @@ export function AgentChat({
                 </button>
               ))}
             </div>
+            {plan === "free" ? <UpgradeButton /> : null}
             <RepoLink />
           </>
         )}
@@ -307,12 +324,29 @@ function ErrorMessage({ message }: { readonly message: string }) {
   );
 }
 
-function ChatHeader({ canStartNewChat }: { readonly canStartNewChat: boolean }) {
+function PlanBadge({ plan }: { readonly plan: Plan }) {
+  return plan === "premium" ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-2.5 py-0.5 font-medium text-[#2C2E25] text-xs">
+      <SparklesIcon className="size-3" />
+      Premium · AI assistant
+    </span>
+  ) : (
+    <span className="inline-flex items-center rounded-full border border-border bg-card px-2.5 py-0.5 text-muted-foreground text-xs">
+      Free · PetClinic Basic
+    </span>
+  );
+}
+
+function ChatHeader({ canStartNewChat, plan }: { readonly canStartNewChat: boolean; readonly plan: Plan }) {
   return (
     <header className="pointer-events-none fixed top-0 right-0 left-0 z-10 h-14 lg:left-64">
       <div className="relative mx-auto flex h-full w-full max-w-3xl items-center justify-center gap-3 bg-background px-24">
         <AppMark className="lg:hidden" size="sm" />
         <span className="hidden truncate font-semibold font-serif text-base lg:inline">PetClinic assistant</span>
+        <PlanBadge plan={plan} />
+        {plan === "free" ? (
+          <UpgradeButton className="pointer-events-auto fixed top-3 right-36 hidden md:inline-flex" size="sm" />
+        ) : null}
         {canStartNewChat ? (
           <Button
             aria-label="Start a new chat"

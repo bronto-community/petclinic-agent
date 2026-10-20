@@ -1,5 +1,5 @@
 import { eveChannel } from "eve/channels/eve";
-import { localDev, type AuthFn, vercelOidc } from "eve/channels/auth";
+import { localDev, none, type AuthFn, vercelOidc } from "eve/channels/auth";
 import { auth } from "../../apps/web/lib/auth.js";
 
 const betterAuthSession: AuthFn<Request> = async (request) => {
@@ -23,5 +23,7 @@ const betterAuthSession: AuthFn<Request> = async (request) => {
 };
 
 export default eveChannel({
-  auth: [betterAuthSession, vercelOidc(), localDev()],
+  // Signed-in users and Vercel OIDC callers get Premium; everyone else falls through
+  // to none() and gets the free plan (see agent/agent.ts).
+  auth: [betterAuthSession, vercelOidc(), localDev(), none()],
 });

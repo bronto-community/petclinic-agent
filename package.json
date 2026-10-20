@@ -5,6 +5,7 @@
   "type": "module",
   "license": "Apache-2.0",
   "dependencies": {
+    "@ai-sdk/provider": "4.0.30",
     "@opentelemetry/api": "^1.9.1",
     "@radix-ui/react-use-controllable-state": "1.2.2",
     "@shadcn/react": "0.3.1",
