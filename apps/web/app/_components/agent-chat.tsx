@@ -1,6 +1,7 @@
 "use client";
 
 import type { UserContent } from "ai";
+import { track } from "@vercel/analytics";
 import { useEveAgent } from "eve/react";
 import { AlertCircleIcon, BrainIcon, PlusIcon, SparklesIcon, SquareIcon } from "lucide-react";
 import { useRef, useState } from "react";
@@ -124,6 +125,7 @@ export function AgentChat({
 
     setHasInputText(false);
     setCancellationError(undefined);
+    track("message_sent", { plan, followUp: agent.session !== undefined });
     hasSubmittedMessage.current = true;
     firstMessage.current ??= toTitle(text || message.files[0]?.filename || "New chat");
     if (agent.session !== undefined) {
@@ -259,7 +261,10 @@ export function AgentChat({
                   className="max-w-full rounded-2xl border border-border bg-card px-3.5 py-1.5 text-left text-foreground text-sm shadow-xs transition-colors hover:border-brand hover:bg-chip disabled:opacity-50"
                   disabled={isResuming}
                   key={example}
-                  onClick={() => void handleSubmit({ files: [], text: example })}
+                  onClick={() => {
+                    track("example_clicked", { plan });
+                    void handleSubmit({ files: [], text: example });
+                  }}
                   type="button"
                 >
                   {example}

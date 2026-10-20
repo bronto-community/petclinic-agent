@@ -3,7 +3,8 @@ import { getVercelOidcToken } from "@vercel/oidc";
 // Synthetic traffic for the demo, run every minute by a Vercel cron job (vercel.ts).
 // Each run: 10 agent conversations spread over the minute, 9 on the free plan
 // (anonymous, rule-based model) and 1 on Premium (Vercel OIDC, AI model); a page load,
-// direct PetClinic calls, and now and then a request the firewall blocks.
+// the ISR page, a redirect, an external rewrite, direct PetClinic calls, and now and
+// then a request the firewall blocks.
 //
 // Hard stop: after STOP_AT every run returns immediately, whatever the configuration.
 // The date lives in code on purpose, so no environment variable can extend it.
@@ -73,6 +74,14 @@ export async function GET(request: Request) {
       }),
     ),
     fetch(`${origin}/`, { headers: { "user-agent": USER_AGENT } }).catch(() => {}),
+    // The ISR page (cache hits and revalidations), a redirect, an external rewrite.
+    fetch(`${origin}/vets`, { headers: { "user-agent": USER_AGENT } }).catch(() => {}),
+    Math.random() < 0.3
+      ? fetch(`${origin}/clinic`, { headers: { "user-agent": USER_AGENT }, redirect: "manual" }).catch(() => {})
+      : Promise.resolve(),
+    Math.random() < 0.1
+      ? fetch(`${origin}/petclinic-openapi.yml`, { headers: { "user-agent": USER_AGENT } }).catch(() => {})
+      : Promise.resolve(),
     petclinicCalls().catch(() => {}),
     Math.random() < 0.1
       ? fetch(`${origin}${pick(SCANNER_PATHS)}`, { headers: { "user-agent": "sqlmap/1.8" } }).catch(() => {})

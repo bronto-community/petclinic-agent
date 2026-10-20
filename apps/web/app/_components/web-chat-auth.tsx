@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@vercel/analytics";
 import { LogOutIcon, SparklesIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export function UpgradeButton({ className, size = "default" }: { readonly classN
   const [failed, setFailed] = useState(false);
 
   async function signIn() {
+    track("upgrade_clicked");
     setPending(true);
     setFailed(false);
     try {
