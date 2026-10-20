@@ -2,14 +2,16 @@
 // eve writes its own Build Output, so per-service `functions` settings in vercel.ts
 // don't reach its functions. This sets them in each function's .vc-config.json:
 // - regions: run next to PetClinic (eu-west-1) instead of the default iad1
-// - supportsCancellation on the HTTP server function, so a stream whose client has
-//   disconnected ends instead of running until maxDuration. Turns run in the
-//   Workflow function, which keeps running.
+// - maxDuration 60 s on the HTTP server function: a session stream whose client has
+//   gone away otherwise stays open (and billed) for the default 300 s. Turns run in the
+//   Workflow function, and eve's clients reconnect a stream from their cursor.
+//   (supportsCancellation in .vc-config.json was tried first and had no effect.)
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const root = process.argv[2];
 const REGIONS = ["dub1"];
+const SERVER_MAX_DURATION = 60;
 
 async function* configs(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -22,7 +24,7 @@ async function* configs(dir) {
 for await (const path of configs(join(root, "functions"))) {
   const config = JSON.parse(await readFile(path, "utf8"));
   config.regions = REGIONS;
-  if (path.includes("__server.func")) config.supportsCancellation = true;
+  if (path.includes("__server.func")) config.maxDuration = SERVER_MAX_DURATION;
   await writeFile(path, JSON.stringify(config, null, 2));
-  console.log(`patched ${path.slice(root.length)}: regions=${REGIONS}${config.supportsCancellation ? ", supportsCancellation" : ""}`);
+  console.log(`patched ${path.slice(root.length)}: regions=${REGIONS}${path.includes("__server.func") ? `, maxDuration=${SERVER_MAX_DURATION}` : ""}`);
 }
