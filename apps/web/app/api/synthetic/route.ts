@@ -1,8 +1,9 @@
 import { getVercelOidcToken } from "@vercel/oidc";
 
 // Synthetic traffic for the demo, run every minute by a Vercel cron job (vercel.ts).
-// Each run: 10 agent conversations spread over the minute, 9 on the free plan
-// (anonymous, rule-based model) and 1 on Premium (Vercel OIDC, AI model); a page load,
+// Each run: 1 agent conversation at a random point in the minute, on the free plan
+// (anonymous, rule-based model) or, in 1 of 10 runs, on Premium (Vercel OIDC, AI model).
+// (On 20 Oct it was 10 per run; that cost about $18 a day in usage.) Plus a page load,
 // the ISR page, a redirect, an external rewrite, direct PetClinic calls, and now and
 // then a request the firewall blocks.
 //
@@ -13,8 +14,7 @@ const STOP_AT = new Date("2026-10-23T22:00:00Z"); // Saturday 24 Oct, 00:00 Euro
 export const maxDuration = 300;
 
 const USER_AGENT = "petclinic-synthetic/1.0";
-const FREE_PER_RUN = 9;
-const PREMIUM_PER_RUN = 1;
+const PREMIUM_SHARE = 0.1;
 const SPREAD_MS = 50_000;
 
 // Free plan: what PetClinic Basic can answer, plus questions that get the upgrade hint.
@@ -60,10 +60,7 @@ export async function GET(request: Request) {
   }
 
   const origin = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL ?? new URL(request.url).host}`;
-  const plans = [
-    ...Array.from({ length: FREE_PER_RUN }, () => "free" as const),
-    ...Array.from({ length: PREMIUM_PER_RUN }, () => "premium" as const),
-  ];
+  const plans = [Math.random() < PREMIUM_SHARE ? ("premium" as const) : ("free" as const)];
 
   const [conversations] = await Promise.all([
     Promise.allSettled(
