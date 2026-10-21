@@ -1,11 +1,22 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { otlpEndpoint, otlpHeaders } from "@/lib/otlp";
+import { SeverityNumber } from "@opentelemetry/api-logs";
+import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-proto";
+import { resourceFromAttributes } from "@opentelemetry/resources";
+import { BatchLogRecordProcessor, LoggerProvider } from "@opentelemetry/sdk-logs";
+import { after } from "next/server";
 
-// Receives Vercel deployment webhooks and forwards each event as an OTLP event
-// (a log record with eventName), so deploys show up as markers next to the app's
-// traces and logs. vcs.* attributes follow the OpenTelemetry semantic conventions;
-// fields the conventions don't define use the vercel.* namespace.
+// Receives Vercel deployment webhooks and forwards each event as an OpenTelemetry event
+// (a log record with an event name), so deploys show up as markers next to the app's
+// traces and logs. The exporter reads the standard OTEL_EXPORTER_OTLP_* variables.
+// vcs.* attributes follow the OpenTelemetry semantic conventions; fields the conventions
+// don't define use the vercel.* namespace.
 // Webhooks: https://vercel.com/docs/webhooks (signature: HMAC-SHA1 of the body, hex).
+
+const loggerProvider = new LoggerProvider({
+  resource: resourceFromAttributes({ "service.name": "vercel-deployments", "service.namespace": "petclinic-agent" }),
+  processors: [new BatchLogRecordProcessor({ exporter: new OTLPLogExporter() })],
+});
+const logger = loggerProvider.getLogger("vercel-webhook");
 
 type DeploymentEvent = {
   readonly id: string;
@@ -31,18 +42,10 @@ export async function POST(request: Request) {
   }
 
   const event = JSON.parse(body) as DeploymentEvent;
-  const endpoint = otlpEndpoint("logs");
-  if (!event.type.startsWith("deployment.") || !endpoint) return Response.json({ ignored: true });
+  if (!event.type.startsWith("deployment.")) return Response.json({ ignored: true });
 
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { ...otlpHeaders(), "content-type": "application/json" },
-    body: JSON.stringify(toOtlpLog(event)),
-  });
-  if (!res.ok) {
-    console.error(JSON.stringify({ msg: "deployment event export failed", status: res.status }));
-    return Response.json({ error: "export failed" }, { status: 502 });
-  }
+  logger.emit(toLogRecord(event));
+  after(() => loggerProvider.forceFlush()); // export before the function ends
   return Response.json({ ok: true });
 }
 
@@ -53,7 +56,7 @@ function validSignature(body: string, signature: string | null, secret: string):
   return expected.length === received.length && timingSafeEqual(expected, received);
 }
 
-function toOtlpLog(event: DeploymentEvent) {
+function toLogRecord(event: DeploymentEvent) {
   const deployment = event.payload?.deployment;
   const meta = deployment?.meta ?? {};
   const repository =
@@ -77,34 +80,11 @@ function toOtlpLog(event: DeploymentEvent) {
   };
   const failed = event.type === "deployment.error";
   return {
-    resourceLogs: [
-      {
-        resource: {
-          attributes: [
-            { key: "service.name", value: { stringValue: "vercel-deployments" } },
-            { key: "service.namespace", value: { stringValue: "petclinic-agent" } },
-          ],
-        },
-        scopeLogs: [
-          {
-            scope: { name: "vercel-webhook" },
-            logRecords: [
-              {
-                timeUnixNano: String(event.createdAt * 1_000_000),
-                eventName: event.type,
-                severityNumber: failed ? 17 : 9,
-                severityText: failed ? "ERROR" : "INFO",
-                body: {
-                  stringValue: [event.type, deployment?.name, event.payload?.target, deployment?.url].filter(Boolean).join(" "),
-                },
-                attributes: Object.entries(attributes)
-                  .filter((entry): entry is [string, string] => Boolean(entry[1]))
-                  .map(([key, value]) => ({ key, value: { stringValue: value } })),
-              },
-            ],
-          },
-        ],
-      },
-    ],
+    eventName: event.type,
+    timestamp: event.createdAt,
+    severityNumber: failed ? SeverityNumber.ERROR : SeverityNumber.INFO,
+    severityText: failed ? "ERROR" : "INFO",
+    body: [event.type, deployment?.name, event.payload?.target, deployment?.url].filter(Boolean).join(" "),
+    attributes: Object.fromEntries(Object.entries(attributes).filter(([, value]) => value)),
   };
 }

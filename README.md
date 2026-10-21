@@ -40,19 +40,18 @@ Vercel's own views (Observability, Agent Runs) show the agent side only. Vercel 
 
 | Path | What it is |
 | --- | --- |
-| `agent/` | The eve agent: instructions, four tools, OTLP trace export |
+| `agent/` | The eve agent: instructions, four tools, OpenTelemetry in `agent/instrumentation/` (the undici instrumentation for `fetch`, the standard OTLP exporter) |
 | `apps/web/` | Next.js chat page; deployed as a second Vercel service next to the agent (`vercel.ts`) |
-| `agent/lib/petclinic.ts` | PetClinic client; injects `traceparent` into every request |
+| `agent/lib/petclinic.ts` | PetClinic client, plain `fetch()`; the undici instrumentation adds the client span and `traceparent` |
 | `petclinic/` | Docker Compose stack: PetClinic + Java agent, Postgres, Caddy (HTTPS, shared-key check, tracing), OpenTelemetry Collector (`otel-collector.yaml`) |
 | `petclinic/browser/` | Synthetic visitor on the PetClinic host (Playwright): opens the chat page every ~5 minutes as a free-plan user, tagged `utm_source=synthetic`, for Web Analytics and Speed Insights |
 | `apps/web/instrumentation.ts` | `@vercel/otel` for the Next.js app; `propagateContextUrls` carries the trace into PetClinic |
 | `apps/web/app/vets/` | An ISR page (revalidate 60 s) that fetches PetClinic; `/clinic` redirects to it, `/petclinic-openapi.yml` is an external rewrite |
 | `apps/web/app/api/chaos/` | Deliberate errors and crashes (`?kind=error`, `?kind=crash`), protected by `CHAOS_SECRET` |
-| `apps/web/app/api/vercel-webhook/` | Forwards Vercel deployment webhooks as OTLP events (deploy markers) |
+| `apps/web/app/api/vercel-webhook/` | Forwards Vercel deployment webhooks as OpenTelemetry events (deploy markers), with the OpenTelemetry Logs SDK |
 | `scripts/patch-eve-vercel-output.mjs` | Sets the region and the server function's `maxDuration` in eve's Build Output |
-| `petclinic/drain-sink/` | Lab only: a log drain receiver that can answer 500, to test failed deliveries |
 | `apps/web/app/api/synthetic/` | Synthetic traffic on Vercel (cron, every minute): Premium conversations, page loads, PetClinic calls, scanner probes |
-| `petclinic/compose.public.yaml` | Additions for a public host: HTTPS on ports 80/443, the synthetic browser, the drain sink |
+| `petclinic/compose.public.yaml` | Additions for a public host: HTTPS on ports 80/443, the synthetic browser |
 | `infra/deploy-lightsail.sh` | One hosting option: creates an AWS Lightsail instance and starts the stack |
 
 ## Run locally
@@ -97,7 +96,7 @@ Options:
 
 - **AWS Lightsail in one command:** `OTEL_EXPORTER_OTLP_ENDPOINT=... OTLP_HEADERS='{...}' ./infra/deploy-lightsail.sh` creates a 2 GB instance with a static IP and an `sslip.io` hostname, and prints `PETCLINIC_URL` and `PETCLINIC_API_KEY`.
 - **For a quick test without a server:** run the stack locally (see above) and expose port 8088 with a tunnel such as `cloudflared` or `ngrok`.
-- **Without the extras:** `compose.public.yaml` also starts the synthetic browser and the drain-sink test receiver. Leave them out with `docker compose ... up -d postgres petclinic caddy otel-collector`.
+- **Without the extras:** `compose.public.yaml` also starts the synthetic browser. Leave them out with `docker compose ... up -d postgres petclinic caddy otel-collector`.
 
 ### 2. Agent and chat page, on Vercel
 
@@ -109,8 +108,8 @@ Set `PETCLINIC_URL`, `PETCLINIC_API_KEY`, `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTE
 | --- | --- | --- |
 | `PETCLINIC_URL` | agent | PetClinic API base URL, ending in `/petclinic/api` |
 | `PETCLINIC_API_KEY` | agent, petclinic | Shared key, sent as `X-PetClinic-Key` and checked by Caddy |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | agent, petclinic | OTLP/HTTP base URL; `/v1/traces`, `/v1/metrics` and `/v1/logs` are appended. Without it, the agent exports nothing |
-| `OTEL_EXPORTER_OTLP_HEADERS` | agent | Auth headers as `key=value,key2=value2` (values URL-encoded) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | agent, web, petclinic | OTLP/HTTP base URL; `/v1/traces`, `/v1/metrics` and `/v1/logs` are appended. Without it, the agent exports nothing |
+| `OTEL_EXPORTER_OTLP_HEADERS` | agent, web | Auth headers as `key=value,key2=value2` (values URL-encoded) |
 | `OTLP_HEADERS` | petclinic | The same headers for the Collector, as a YAML map, e.g. `{authorization: "Bearer abc"}` (values as written) |
 | `FUNCTION_REGION` | agent (build) | Vercel region for all functions, e.g. `dub1`. Pick the one closest to PetClinic: a call across the Atlantic added about 290 ms in the lab. Unset = Vercel's default |
 | `EVE_MODEL` | agent | AI Gateway model ID for the Premium plan, default `anthropic/claude-haiku-5.5` |

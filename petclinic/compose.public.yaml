@@ -1,12 +1,9 @@
 # On a public host (any VM or server with Docker): Caddy serves the public hostname
-# with automatic HTTPS, a synthetic browser visits the chat page every minute
-# (Web Analytics), and a drain sink receives a test log drain for the
-# delivery-failure test.
+# with automatic HTTPS, and a synthetic browser visits the chat page every minute
+# (Web Analytics).
 #   docker compose -f compose.yaml -f compose.public.yaml up -d --build
 services:
   caddy:
-    environment:
-      SINK_KEY: ${SINK_KEY:-}
     ports:
       - "80:80"
       - "443:443"
@@ -21,14 +18,3 @@ services:
     # Exits on its own after STOP_AT; don't restart it then.
     restart: on-failure
 
-  drain-sink:
-    build: ./drain-sink
-    environment:
-      SINK_KEY: ${SINK_KEY:-}
-      DRAIN_SECRET: ${DRAIN_SECRET:-}
-    volumes:
-      - drain_sink:/data
-    restart: unless-stopped
-
-volumes:
-  drain_sink:
