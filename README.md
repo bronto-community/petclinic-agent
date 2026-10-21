@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="apps/web/app/icon.svg" alt="PetClinic logo: a paw print in a yellow circle" width="96" height="96">
+</p>
+
 # petclinic-agent
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
