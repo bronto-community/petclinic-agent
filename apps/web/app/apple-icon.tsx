@@ -7,14 +7,23 @@ export const size = {
 
 export const contentType = "image/png";
 
+// The app mark on a full-bleed brand-yellow square (iOS rounds the corners): Lucide's paw-print (ISC, see NOTICE).
 export default function AppleIcon() {
   return new ImageResponse(
-    <svg fill="none" viewBox="0 0 102 102" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0 0h102v102H0z" fill="#000" />
-      <path
-        d="M49.28 66.94 75.03 34.96h-6.89L47.91 60.11l-5.49 6.83h6.86ZM0 34.96h42.4v5.11H0zm0 13.32h27.66v5.11H0zm0 13.54h27.66v5.11H0zm69.63-26.86H102v5.11H69.63zm4.71 13.32H102v5.11H74.34zm0 13.54H102v5.11H74.34z"
-        fill="#fff"
-      />
+    <svg fill="none" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+      <rect fill="#F5B719" height="180" width="180" />
+      <g
+        stroke="#2C2E25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        transform="translate(38 38) scale(4.333)"
+      >
+        <circle cx="11" cy="4" r="2" />
+        <circle cx="18" cy="8" r="2" />
+        <circle cx="20" cy="16" r="2" />
+        <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z" />
+      </g>
     </svg>,
     size,
   );
