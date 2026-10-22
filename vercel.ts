@@ -1,8 +1,12 @@
 import { withEve } from "eve/vercel";
 
 const config = await withEve({
-  // Synthetic traffic every minute; the route stops itself after its hard-coded STOP_AT.
-  crons: [{ path: "/api/synthetic", schedule: "* * * * *" }],
+  // Synthetic traffic every minute and the ops agent every hour; both routes stop
+  // themselves after the hard-coded STOP_AT (apps/web/lib/stop-at.ts).
+  crons: [
+    { path: "/api/synthetic", schedule: "* * * * *" },
+    { path: "/api/ops", schedule: "0 * * * *" },
+  ],
   services: {
     web: {
       framework: "nextjs",

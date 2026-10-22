@@ -1,4 +1,5 @@
 import { getVercelOidcToken } from "@vercel/oidc";
+import { STOP_AT } from "@/lib/stop-at";
 
 // Synthetic traffic for the demo, run every minute by a Vercel cron job (vercel.ts).
 // Each run: 1 agent conversation at a random point in the minute, on the free plan
@@ -7,9 +8,7 @@ import { getVercelOidcToken } from "@vercel/oidc";
 // the ISR page, a redirect, an external rewrite, direct PetClinic calls, and now and
 // then a request the firewall blocks.
 //
-// Hard stop: after STOP_AT every run returns immediately, whatever the configuration.
-// The date lives in code on purpose, so no environment variable can extend it.
-const STOP_AT = new Date("2026-10-23T22:00:00Z"); // Saturday 24 Oct, 00:00 Europe/Berlin
+// Hard stop: after STOP_AT (lib/stop-at.ts) every run returns immediately.
 
 export const maxDuration = 300;
 

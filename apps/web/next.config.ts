@@ -1,3 +1,4 @@
+import { withDurableHarness } from "durable-harness/next";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -17,4 +18,5 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// withDurableHarness adds the queue route that runs the ops agent's turns (lib/ops-agent.ts).
+export default withDurableHarness(nextConfig);

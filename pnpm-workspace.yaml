@@ -1,5 +1,8 @@
 minimumReleaseAge: 0
 minimumReleaseAgeStrict: true
 allowBuilds:
+  '@google/genai': false
+  cbor-extract: false
   esbuild: true
+  protobufjs: false
   sharp: false

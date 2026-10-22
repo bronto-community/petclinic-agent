@@ -7,7 +7,8 @@ import { registerTelemetry } from "ai";
 // trace context, so their spans join the trace of the request that called them.
 // registerTelemetry turns on the AI SDK's spans (GenAI semantic conventions);
 // providerMetadata adds the AI Gateway's cost and routing to each model-call span.
-export function register() {
+// agent-runs.ts traces the ops agent's sessions, on durable-harness's own provider.
+export async function register() {
   const petclinic = process.env.PETCLINIC_URL ? new URL(process.env.PETCLINIC_URL).origin : undefined;
   registerOTel({
     serviceName: "petclinic-web",
@@ -17,4 +18,8 @@ export function register() {
     },
   });
   registerTelemetry(new OpenTelemetry({ providerMetadata: true }));
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { default: runs } = await import("./agent-runs");
+    runs.register();
+  }
 }
