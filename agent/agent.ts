@@ -1,20 +1,12 @@
 import { defineAgent, defineDynamic } from "eve";
 import { basicModel } from "./lib/basic-model.js";
+import { PREMIUM_MODEL, premiumModelOptions } from "./lib/models.js";
 
 // Two plans:
 // - Free (anonymous visitors): "PetClinic Basic", a rule-based model that can list
 //   vets and look up owners, and never books.
 // - Premium (signed-in users, and Vercel OIDC callers such as the synthetic-traffic
-//   cron): an AI Gateway model, EVE_MODEL, default Claude Haiku 5.5. If its providers
-//   fail, the AI Gateway falls back to EVE_FALLBACK_MODEL, from another provider.
-const PREMIUM_MODEL = process.env.EVE_MODEL ?? "anthropic/claude-haiku-5.5";
-const FALLBACK_MODEL = process.env.EVE_FALLBACK_MODEL ?? "google/gemini-3.8-flash";
-
-const gateway: Record<string, string[]> = { models: [FALLBACK_MODEL] };
-// CHAOS_MODEL_OUTAGE=1 lets only the fallback model's provider serve requests, so the
-// premium model is unavailable and every call falls back, as in a provider outage.
-if (process.env.CHAOS_MODEL_OUTAGE === "1") gateway.only = [FALLBACK_MODEL.split("/")[0]];
-
+//   cron): an AI Gateway model with a fallback (lib/models.ts), and the triage subagent.
 export default defineAgent({
   model: defineDynamic({
     events: {
@@ -22,7 +14,7 @@ export default defineAgent({
       "step.started": (_event, ctx) =>
         ctx.session.auth.current?.principalType === "anonymous"
           ? { model: basicModel, modelContextWindowTokens: 32_000 }
-          : { model: PREMIUM_MODEL, modelOptions: { providerOptions: { gateway } } },
+          : { model: PREMIUM_MODEL, modelOptions: premiumModelOptions },
     },
   }),
   reasoning: "low",
