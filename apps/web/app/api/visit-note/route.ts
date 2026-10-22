@@ -7,6 +7,13 @@ import { z } from "zod";
 // OIDC token. The AI SDK spans come from registerTelemetry in instrumentation.ts.
 const MODEL = process.env.VISIT_NOTE_MODEL ?? "anthropic/claude-haiku-5.5";
 
+// With ANTHROPIC_BYOK_API_KEY, the AI Gateway calls Anthropic with that key for this
+// request only (request-scoped BYOK), and order keeps the call on Anthropic's own API.
+// The call then runs in your Anthropic organization, whose telemetry destinations can
+// export Anthropic's server-side spans for it.
+const anthropicKey = process.env.ANTHROPIC_BYOK_API_KEY;
+const gateway = anthropicKey ? { byok: { anthropic: [{ apiKey: anthropicKey }] }, order: ["anthropic"] } : undefined;
+
 const Visit = z.object({
   petName: z.string().min(1).max(100),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -36,6 +43,7 @@ export async function POST(request: Request) {
     instructions: "You write short, warm notes for a veterinary clinic. No medical advice beyond what to bring.",
     prompt: `Visit for ${visit.data.petName} on ${visit.data.date}. Reason: ${visit.data.description}`,
     telemetry: { functionId: "visit-note" },
+    providerOptions: gateway && { gateway },
   });
   return Response.json(output);
 }

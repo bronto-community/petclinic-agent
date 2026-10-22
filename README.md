@@ -123,6 +123,7 @@ Set `PETCLINIC_URL`, `PETCLINIC_API_KEY`, `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTE
 | `EVE_FALLBACK_MODEL` | agent | AI Gateway fallback for the Premium plan, from another provider, default `google/gemini-3.8-flash` |
 | `CHAOS_MODEL_OUTAGE` | agent | `1` lets only the fallback model's provider serve, so every Premium call falls back, as in a provider outage. Off by default |
 | `VISIT_NOTE_MODEL` | web | AI Gateway model ID for the visit note, default `anthropic/claude-haiku-5.5` |
+| `ANTHROPIC_BYOK_API_KEY` | web | Optional. An Anthropic API key the AI Gateway uses for the visit note (request-scoped BYOK), so the call runs in your Anthropic organization and its [telemetry destinations](https://platform.claude.com/docs/en/manage-claude/opentelemetry/api) can export Anthropic's server-side spans |
 | `OPS_MODEL` | web | AI Gateway model ID for the ops agent, default `anthropic/claude-haiku-5.5` |
 | `CHAOS_OPS_CRASH` | web | `1` arms a crash 50 ms into each ops session's first tool call: the function dies, and another resumes the turn from the session's log. Off by default |
 | `WEB_URL` | agent (local) | Chat app URL for the visit note when not running on Vercel, default `http://localhost:3000` |
