@@ -78,6 +78,13 @@ processors:
           - set(attributes["postgresql.statement.duration_ms"], Double(attributes["slow"]["duration_ms"])) where attributes["slow"] != nil
           - delete_key(attributes, "slow")
           - delete_key(attributes, "message")
+  # Where the stack runs (cloud.provider, cloud.region, cloud.availability_zone, host.id, …), read from the
+  # instance metadata service. Containers reach IMDSv2 only with a hop limit of 2; deploy-lightsail.sh sets it.
+  # Off AWS the ec2 detector finds nothing and the stack runs as before.
+  resourcedetection:
+    detectors: [env, ec2]
+    timeout: 2s
+    override: false
   resource:
     attributes:
       - { key: service.namespace, value: petclinic-agent, action: upsert }
@@ -91,6 +98,6 @@ exporters:
 
 service:
   pipelines:
-    traces: { receivers: [otlp], processors: [resource, batch], exporters: [otlp_http] }
-    metrics: { receivers: [otlp, host_metrics], processors: [resource, batch], exporters: [otlp_http] }
-    logs: { receivers: [otlp, file_log/caddy, file_log/postgres], processors: [transform/logs, resource, batch], exporters: [otlp_http] }
+    traces: { receivers: [otlp], processors: [resourcedetection, resource, batch], exporters: [otlp_http] }
+    metrics: { receivers: [otlp, host_metrics], processors: [resourcedetection, resource, batch], exporters: [otlp_http] }
+    logs: { receivers: [otlp, file_log/caddy, file_log/postgres], processors: [transform/logs, resourcedetection, resource, batch], exporters: [otlp_http] }

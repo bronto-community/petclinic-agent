@@ -46,6 +46,8 @@ SCRIPT
 ls create-instances --instance-names "$NAME" --availability-zone "${REGION}a" \
   --blueprint-id ubuntu_24_04 --bundle-id "$BUNDLE" --user-data "$USER_DATA" >/dev/null
 until [ "$(ls get-instance-state --instance-name "$NAME" --query state.name --output text)" = running ]; do sleep 5; done
+# IMDSv2 with a hop limit of 2, so the Collector's ec2 detector can read the region from inside its container.
+ls update-instance-metadata-options --instance-name "$NAME" --http-tokens required --http-put-response-hop-limit 2 >/dev/null
 ls attach-static-ip --static-ip-name "$NAME-ip" --instance-name "$NAME" >/dev/null
 ls put-instance-public-ports --instance-name "$NAME" --port-infos \
   fromPort=22,toPort=22,protocol=tcp fromPort=80,toPort=80,protocol=tcp fromPort=443,toPort=443,protocol=tcp >/dev/null
