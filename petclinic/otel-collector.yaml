@@ -85,6 +85,10 @@ processors:
     detectors: [env, ec2]
     timeout: 2s
     override: false
+    ec2:
+      resource_attributes:
+        # On Lightsail this is Lightsail's own AWS account, not yours.
+        cloud.account.id: { enabled: false }
   resource:
     attributes:
       - { key: service.namespace, value: petclinic-agent, action: upsert }
