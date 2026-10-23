@@ -22,6 +22,7 @@ async function* configs(dir) {
 }
 
 for await (const path of configs(join(root, "functions"))) {
+  if (!path.includes("__server.func")) continue;
   const config = JSON.parse(await readFile(path, "utf8"));
   if (REGIONS) config.regions = REGIONS;
   if (path.includes("__server.func")) config.maxDuration = SERVER_MAX_DURATION;
