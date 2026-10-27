@@ -23,8 +23,10 @@ services:
       POSTGRES_URL: ${POSTGRES_URL:?set POSTGRES_URL}
       POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
       POSTGRES_PASS: ${POSTGRES_PASS:?set POSTGRES_PASS}
-      # More database connections for the agent's parallel tool calls.
-      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "20"
+      # In session mode, Supabase's pooler allows each role as many clients as its
+      # Pool Size (15 on the smallest compute); a larger connection pool gets the rest
+      # rejected with EMAXCONNSESSION. HikariCP's default of 10 leaves room for others.
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "10"
       # Append the trace context to each SQL statement as a comment (sqlcommenter), so
       # statements in Supabase's Postgres logs can be joined to the trace that ran them.
       OTEL_INSTRUMENTATION_JDBC_EXPERIMENTAL_SQLCOMMENTER_ENABLED: "true"
