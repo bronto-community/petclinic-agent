@@ -23,6 +23,8 @@ services:
       POSTGRES_URL: ${POSTGRES_URL:?set POSTGRES_URL}
       POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
       POSTGRES_PASS: ${POSTGRES_PASS:?set POSTGRES_PASS}
+      # More database connections for the agent's parallel tool calls.
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "20"
       # Append the trace context to each SQL statement as a comment (sqlcommenter), so
       # statements in Supabase's Postgres logs can be joined to the trace that ran them.
       OTEL_INSTRUMENTATION_JDBC_EXPERIMENTAL_SQLCOMMENTER_ENABLED: "true"
