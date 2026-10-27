@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ensureSession } from "@/lib/supabase/client";
 
 // eve has no API to list a user's sessions, but every session reopens at /s/<id>.
@@ -22,8 +22,13 @@ async function load(): Promise<ChatHistoryEntry[]> {
   }
 }
 
+// The chat calls record() on every session update while an answer streams; save each
+// conversation at most once in this interval.
+const SAVE_INTERVAL_MS = 30_000;
+
 export function useChatHistory() {
   const [entries, setEntries] = useState<ChatHistoryEntry[]>([]);
+  const lastSaved = useRef(new Map<string, number>());
   const refresh = useCallback(() => load().then(setEntries), []);
 
   useEffect(() => {
@@ -33,6 +38,9 @@ export function useChatHistory() {
   /** Adds the session, or moves it to the top and keeps its title. */
   const record = useCallback(
     (id: string, title: string) => {
+      const now = Date.now();
+      if (now - (lastSaved.current.get(id) ?? 0) < SAVE_INTERVAL_MS) return;
+      lastSaved.current.set(id, now);
       void ensureSession()
         .then(() =>
           fetch("/api/history", {
