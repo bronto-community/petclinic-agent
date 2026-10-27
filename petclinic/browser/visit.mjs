@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { chromium, devices } from "playwright";
 
 // Every ~minute: a free-plan visitor opens the chat page, clicks an example question,
@@ -6,7 +7,7 @@ import { chromium, devices } from "playwright";
 // blocked: its free tier (10,000 events per 30 days) is shared by the whole team, and
 // running out pauses collection for every project.
 // Hard stop: after STOP_AT the loop exits, whatever the configuration.
-const STOP_AT = new Date("2026-10-23T22:00:00Z"); // Saturday 24 Oct, 00:00 Europe/Berlin
+const STOP_AT = new Date("2026-11-07T22:00:00Z"); // Friday 7 Nov, 23:00 Europe/Berlin
 // Every synthetic visit carries utm_source=synthetic, so analytics can tell it apart.
 const TARGET_URL = withUtm(process.env.TARGET_URL ?? "https://petclinic-agent.vercel.app/");
 const INTERVAL_MS = Number(process.env.INTERVAL_MS ?? 60_000);
@@ -35,8 +36,16 @@ async function visit() {
   // navigator.webdriver; this is our own demo site, so we turn that flag off.
   const browser = await chromium.launch({ args: ["--disable-blink-features=AutomationControlled"] });
   try {
-    const profile = PROFILES[Math.floor(Math.random() * PROFILES.length)];
-    const context = await browser.newContext({ ...profile, locale: "en-GB" });
+    const index = Math.floor(Math.random() * PROFILES.length);
+    const profile = PROFILES[index];
+    // Four returning visitors, one per device profile: each keeps its cookies between
+    // visits, so the chat history's anonymous Supabase sign-in happens once per visitor.
+    const state = `/tmp/visitor-${index}.json`;
+    const context = await browser.newContext({
+      ...profile,
+      locale: "en-GB",
+      storageState: existsSync(state) ? state : undefined,
+    });
     await context.route(/\/vitals$/, (route) => route.abort());
     const page = await context.newPage();
 
@@ -52,6 +61,7 @@ async function visit() {
     }
     // Leaving the page flushes the analytics beacons.
     await page.goto("about:blank");
+    await context.storageState({ path: state });
     await context.close();
     console.log(JSON.stringify({ msg: "visit done", profile: profile.userAgent.slice(0, 40) }));
   } finally {
