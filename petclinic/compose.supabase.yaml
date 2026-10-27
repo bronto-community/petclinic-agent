@@ -23,6 +23,9 @@ services:
       POSTGRES_URL: ${POSTGRES_URL:?set POSTGRES_URL}
       POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
       POSTGRES_PASS: ${POSTGRES_PASS:?set POSTGRES_PASS}
+      # Append the trace context to each SQL statement as a comment (sqlcommenter), so
+      # statements in Supabase's Postgres logs can be joined to the trace that ran them.
+      OTEL_INSTRUMENTATION_JDBC_EXPERIMENTAL_SQLCOMMENTER_ENABLED: "true"
 
   otel-collector:
     command: ["--config=/etc/otelcol/config.yaml", "--config=/etc/otelcol/supabase.yaml"]
