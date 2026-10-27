@@ -53,7 +53,7 @@ export function AgentChat({
   readonly sessionless?: boolean;
   readonly user?: ChatUser;
 }) {
-  const history = useChatHistory(user?.id ?? (plan === "free" ? "anonymous" : "local"));
+  const history = useChatHistory();
   const firstMessage = useRef<string | undefined>(undefined);
   const [cancellationError, setCancellationError] = useState<string>();
   const [hasInputText, setHasInputText] = useState(false);

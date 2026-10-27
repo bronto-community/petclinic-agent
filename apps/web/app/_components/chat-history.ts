@@ -1,66 +1,60 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ensureSession } from "@/lib/supabase/client";
 
 // eve has no API to list a user's sessions, but every session reopens at /s/<id>.
-// So the history is a per-user list in this browser's localStorage.
+// So the history is a list per visitor in Supabase (/api/history), saved under an
+// anonymous Supabase session that starts with the first saved chat.
 export type ChatHistoryEntry = {
   readonly id: string;
   readonly title: string;
   readonly updatedAt: number;
 };
 
-const MAX_ENTRIES = 50;
-
-function read(key: string): ChatHistoryEntry[] {
+async function load(): Promise<ChatHistoryEntry[]> {
   try {
-    const parsed: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
-    return Array.isArray(parsed) ? (parsed as ChatHistoryEntry[]) : [];
+    const response = await fetch("/api/history", { cache: "no-store" });
+    return response.ok ? ((await response.json()) as ChatHistoryEntry[]) : [];
   } catch {
+    // History is a convenience: the chat still works without it.
     return [];
   }
 }
 
-function write(key: string, entries: ChatHistoryEntry[]) {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(entries.slice(0, MAX_ENTRIES)));
-    window.dispatchEvent(new StorageEvent("storage", { key }));
-  } catch {
-    // Storage blocked or full: history is a convenience, the chat still works.
-  }
-}
-
-export function useChatHistory(userKey: string) {
-  const key = `petclinic:chat-history:${userKey}`;
+export function useChatHistory() {
   const [entries, setEntries] = useState<ChatHistoryEntry[]>([]);
+  const refresh = useCallback(() => load().then(setEntries), []);
 
   useEffect(() => {
-    const sync = () => setEntries(read(key));
-    sync();
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === null || event.key === key) sync();
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [key]);
+    void refresh();
+  }, [refresh]);
 
   /** Adds the session, or moves it to the top and keeps its title. */
   const record = useCallback(
     (id: string, title: string) => {
-      const current = read(key);
-      const existing = current.find((entry) => entry.id === id);
-      const next = [
-        { id, title: existing?.title ?? title, updatedAt: Date.now() },
-        ...current.filter((entry) => entry.id !== id),
-      ];
-      write(key, next);
+      void ensureSession()
+        .then(() =>
+          fetch("/api/history", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ id, title }),
+          }),
+        )
+        .then(refresh)
+        .catch(() => undefined);
     },
-    [key],
+    [refresh],
   );
 
   const remove = useCallback(
-    (id: string) => write(key, read(key).filter((entry) => entry.id !== id)),
-    [key],
+    (id: string) => {
+      setEntries((current) => current.filter((entry) => entry.id !== id));
+      void fetch(`/api/history?id=${encodeURIComponent(id)}`, { method: "DELETE" })
+        .then(refresh)
+        .catch(() => undefined);
+    },
+    [refresh],
   );
 
   return { entries, record, remove };

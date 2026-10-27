@@ -139,6 +139,27 @@ Set `PETCLINIC_URL`, `PETCLINIC_API_KEY`, `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTE
 | `OPS_MODEL` | web | AI Gateway model ID for the ops agent, default `anthropic/claude-haiku-5.5` |
 | `CHAOS_OPS_CRASH` | web | `1` arms a crash 50 ms into each ops session's first tool call: the function dies, and another resumes the turn from the session's log. Off by default |
 | `WEB_URL` | agent (local) | Chat app URL for the visit note when not running on Vercel, default `http://localhost:3000` |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | web | Supabase project for the chat history (saved conversations). The table and its policy are below |
+
+### Chat history on Supabase
+
+The chat page saves each visitor's conversations in Supabase: the browser signs in anonymously with the first saved chat (enable anonymous sign-ins under Authentication), and `/api/history` reads and writes through `@supabase/ssr` with `tracePropagation`, so Supabase's API gateway logs carry the trace ID of the Next.js request. Create the table once (SQL editor):
+
+```sql
+create table public.chat_sessions (
+  id text primary key,
+  owner uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  title text not null,
+  updated_at timestamptz not null default now()
+);
+create index on public.chat_sessions (owner, updated_at desc);
+alter table public.chat_sessions enable row level security;
+create policy "Visitors manage their own chat sessions" on public.chat_sessions
+  for all to authenticated
+  using (owner = (select auth.uid()))
+  with check (owner = (select auth.uid()));
+revoke all on public.chat_sessions from anon;
+```
 
 ### Example backends
 
