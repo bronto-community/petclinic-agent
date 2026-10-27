@@ -59,6 +59,7 @@ Vercel's own views (Observability, Agent Runs) show the agent side only. Vercel 
 | `scripts/patch-eve-vercel-output.mjs` | Sets the region and the server function's `maxDuration` in eve's Build Output |
 | `apps/web/app/api/synthetic/` | Synthetic traffic on Vercel (cron, every minute): Premium conversations, page loads, PetClinic calls, scanner probes |
 | `petclinic/compose.public.yaml` | Additions for a public host: HTTPS on ports 80/443, the synthetic browser |
+| `petclinic/compose.supabase.yaml`, `otel-collector.supabase.yaml` | Optional: PetClinic's database on Supabase instead of the local container, plus a scrape of Supabase's Metrics API |
 | `infra/deploy-lightsail.sh` | One hosting option: creates an AWS Lightsail instance and starts the stack |
 
 ## Run locally
@@ -104,6 +105,17 @@ Options:
 - **AWS Lightsail in one command:** `OTEL_EXPORTER_OTLP_ENDPOINT=... OTLP_HEADERS='{...}' ./infra/deploy-lightsail.sh` creates a 2 GB instance with a static IP and an `sslip.io` hostname, and prints `PETCLINIC_URL` and `PETCLINIC_API_KEY`.
 - **For a quick test without a server:** run the stack locally (see above) and expose port 8088 with a tunnel such as `cloudflared` or `ngrok`.
 - **Without the extras:** `compose.public.yaml` also starts the synthetic browser. Leave them out with `docker compose ... up -d postgres petclinic caddy otel-collector`.
+
+- **Database on Supabase:** add `-f compose.supabase.yaml` to the compose command. PetClinic then uses a Supabase Postgres through the pooler, and the Collector scrapes Supabase's Metrics API. Create a role with its own schema first, so PetClinic's tables stay out of the `public` schema that Supabase's Data API exposes (run as `postgres`, for example in the SQL editor):
+
+  ```sql
+  create role petclinic login password '...';
+  grant petclinic to postgres;
+  create schema petclinic authorization petclinic;
+  alter role petclinic set search_path = petclinic;
+  ```
+
+  Then set `POSTGRES_URL`, `POSTGRES_USER` (`petclinic.<project-ref>`), `POSTGRES_PASS`, `SUPABASE_PROJECT_REF`, `SUPABASE_REGION` and `SUPABASE_METRICS_KEY` (a secret API key) in `petclinic/.env`. PetClinic creates its tables and sample data on first start.
 
 ### 2. Agent and chat page, on Vercel
 

@@ -1,0 +1,34 @@
+# Added to otel-collector.yaml by compose.supabase.yaml: scrapes Supabase's Metrics API
+# (Prometheus format, Postgres, pooler, Auth and host series) once a minute.
+receivers:
+  prometheus/supabase:
+    config:
+      scrape_configs:
+        - job_name: supabase
+          scrape_interval: 60s
+          scheme: https
+          metrics_path: /customer/v1/privileged/metrics
+          basic_auth:
+            username: service_role
+            password: ${env:SUPABASE_METRICS_KEY}
+          static_configs:
+            - targets: ["${env:SUPABASE_PROJECT_REF}.supabase.co"]
+              labels:
+                supabase_project_ref: ${env:SUPABASE_PROJECT_REF}
+
+processors:
+  # The scraped series describe the database, not this host: give them their own service.
+  resource/supabase:
+    attributes:
+      - { key: service.name, value: supabase, action: upsert }
+      - { key: db.system.name, value: postgresql, action: upsert }
+      # Supabase runs the project on AWS in the region chosen at creation.
+      - { key: cloud.provider, value: aws, action: upsert }
+      - { key: cloud.region, value: "${env:SUPABASE_REGION}", action: upsert }
+
+service:
+  pipelines:
+    metrics/supabase:
+      receivers: [prometheus/supabase]
+      processors: [resource/supabase, resource, batch]
+      exporters: [otlp_http]
