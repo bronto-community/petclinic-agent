@@ -11,7 +11,7 @@ const queue = new QueueClient({ region: "dub1", deploymentId: null });
 
 export type VisitBooked = {
   visitId: number;
-  owner: number;
+  ownerId: number;
   petId: number;
   petName: string;
   date: string;

@@ -20,7 +20,7 @@ export default defineTool({
       body: { date, description },
     });
     // The reminders worker picks this up; a failed publish doesn't undo the booking.
-    await publishVisitBooked({ visitId: visit.id, owner: ownerId, petId, petName, date, description }).catch((error: unknown) => {
+    await publishVisitBooked({ visitId: visit.id, ownerId, petId, petName, date, description }).catch((error: unknown) => {
       console.error(JSON.stringify({ msg: "visit-booked publish failed", error: String(error) }));
     });
     // The booking stands even if the note fails; the agent then confirms without it.
