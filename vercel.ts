@@ -1,11 +1,13 @@
 import { withEve } from "eve/vercel";
 
 const config = await withEve({
-  // Synthetic traffic every minute and the ops agent every hour; both routes stop
-  // themselves after the hard-coded STOP_AT (apps/web/lib/stop-at.ts).
+  // Synthetic traffic every minute; the ops agent, the clinic report and the usage pull every
+  // hour. All stop themselves after the hard-coded STOP_AT (apps/web/lib/stop-at.ts).
   crons: [
     { path: "/api/synthetic", schedule: "* * * * *" },
     { path: "/api/ops", schedule: "0 * * * *" },
+    { path: "/api/clinic-report", schedule: "15 * * * *" },
+    { path: "/api/vercel-usage", schedule: "45 * * * *" },
   ],
   services: {
     web: {

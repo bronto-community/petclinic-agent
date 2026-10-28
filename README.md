@@ -58,6 +58,8 @@ Vercel's own views (Observability, Agent Runs) show the agent side only. Vercel 
 | `apps/web/app/api/vercel-webhook/` | Forwards Vercel deployment webhooks as OpenTelemetry events (deploy markers), with the OpenTelemetry Logs SDK |
 | `agent/lib/reminders.ts` | After each booking, `book_visit` publishes a `visit-booked` message to Vercel Queues (`@vercel/queue`), with the trace context in the message |
 | `workers/reminders/` | Reminders worker: a Python Vercel Daemon (container) that polls `visit-booked`, looks up the owner in PetClinic and logs the reminder; OpenTelemetry zero-code instrumentation, consumer span joins the booking's trace. Runs only in production deployments (`daemons` in `vercel.ts`) |
+| `apps/web/app/api/clinic-report/` | Hourly cron: a Vercel Sandbox mounts the clinic's Vercel Drive (`clinic-reports`, `iad1`) and appends the next seven days' bookings to the day's report; the Drive keeps the files between runs |
+| `apps/web/app/api/vercel-usage/` | Hourly cron: pulls what drains don't carry from the Vercel REST API (Sandbox sessions, Drives, daemon instances, and once a day the project's FOCUS billing lines) and forwards them as OpenTelemetry events. Needs `VERCEL_API_TOKEN` and `VERCEL_TEAM_ID` |
 | `scripts/patch-eve-vercel-output.mjs` | Sets the region and the server function's `maxDuration` in eve's Build Output |
 | `apps/web/app/api/synthetic/` | Synthetic traffic on Vercel (cron, every minute): Premium conversations, page loads, PetClinic calls, scanner probes |
 | `petclinic/compose.public.yaml` | Additions for a public host: HTTPS on ports 80/443, the synthetic browser |
