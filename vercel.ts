@@ -31,6 +31,16 @@ if (region) {
     service.functions = { ...functions, "**/*": { regions: [region] } };
   }
 }
+// The reminders worker (workers/reminders/): a Python daemon that consumes the visit-booked
+// queue. Daemons run only in production deployments; one instance next to the functions.
+(config as Record<string, unknown>).daemons = {
+  reminders: {
+    root: "workers/reminders/",
+    entrypoint: "Dockerfile",
+    instances: { [region ?? "dub1"]: 1 },
+    resources: { requests: { memory: "1Gi" } },
+  },
+};
 // eve writes its own Build Output, which ignores `functions`; patch its function
 // configs instead (region, and the server function's maxDuration).
 const eve = services.eve as { buildCommand: string };

@@ -1,6 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { petclinic } from "../lib/petclinic.js";
+import { publishVisitBooked } from "../lib/reminders.js";
 import { visitNote } from "../lib/visit-note.js";
 
 export default defineTool({
@@ -14,9 +15,13 @@ export default defineTool({
   }),
   label: { start: ({ date }) => `Book a visit on ${date}` },
   async execute({ ownerId, petId, petName, date, description }) {
-    const visit = await petclinic(`/owners/${ownerId}/pets/${petId}/visits`, {
+    const visit = await petclinic<{ id: number }>(`/owners/${ownerId}/pets/${petId}/visits`, {
       method: "POST",
       body: { date, description },
+    });
+    // The reminders worker picks this up; a failed publish doesn't undo the booking.
+    await publishVisitBooked({ visitId: visit.id, ownerId, petId, petName, date, description }).catch((error: unknown) => {
+      console.error(JSON.stringify({ msg: "visit-booked publish failed", error: String(error) }));
     });
     // The booking stands even if the note fails; the agent then confirms without it.
     const note = await visitNote({ petName, date, description }).catch((error: unknown) => {

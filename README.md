@@ -56,6 +56,8 @@ Vercel's own views (Observability, Agent Runs) show the agent side only. Vercel 
 | `apps/web/app/api/ops/` | Hourly cron: starts one ops session; `withDurableHarness` (`next.config.ts`) adds the queue route that runs its turns |
 | `apps/web/app/api/chaos/` | Deliberate errors and crashes (`?kind=error`, `?kind=crash`), protected by `CHAOS_SECRET` |
 | `apps/web/app/api/vercel-webhook/` | Forwards Vercel deployment webhooks as OpenTelemetry events (deploy markers), with the OpenTelemetry Logs SDK |
+| `agent/lib/reminders.ts` | After each booking, `book_visit` publishes a `visit-booked` message to Vercel Queues (`@vercel/queue`), with the trace context in the message |
+| `workers/reminders/` | Reminders worker: a Python Vercel Daemon (container) that polls `visit-booked`, looks up the owner in PetClinic and logs the reminder; OpenTelemetry zero-code instrumentation, consumer span joins the booking's trace. Runs only in production deployments (`daemons` in `vercel.ts`) |
 | `scripts/patch-eve-vercel-output.mjs` | Sets the region and the server function's `maxDuration` in eve's Build Output |
 | `apps/web/app/api/synthetic/` | Synthetic traffic on Vercel (cron, every minute): Premium conversations, page loads, PetClinic calls, scanner probes |
 | `petclinic/compose.public.yaml` | Additions for a public host: HTTPS on ports 80/443, the synthetic browser |
