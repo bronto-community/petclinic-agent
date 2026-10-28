@@ -4,7 +4,9 @@ import { STOP_AT } from "@/lib/stop-at";
 // Synthetic traffic for the demo, run every minute by a Vercel cron job (vercel.ts).
 // Each run: 1 agent conversation at a random point in the minute, on the free plan
 // (anonymous, rule-based model) or, in 1 of 10 runs, on Premium (Vercel OIDC, AI model).
-// (On 20 Oct it was 10 per run; that cost about $18 a day in usage.) Plus a page load,
+// (On 20 Oct it was 10 per run; that cost about $18 a day in usage.) Every fifth minute
+// one more Premium conversation books a visit, so the reminders worker (workers/reminders/)
+// gets steady queue traffic, about 12 bookings an hour. Plus a page load,
 // the ISR page, a redirect, an external rewrite, direct PetClinic calls, and now and
 // then a request the firewall blocks.
 //
@@ -47,7 +49,10 @@ const PREMIUM_SCRIPTS: readonly (readonly string[])[] = [
   ["I'm Carlos Estaban, please book a check-up for Lucky next Tuesday.", "Yes.", "Thanks!"],
 ];
 
-const OWNER_LOOKUPS = ["Davis", "Franklin", "Coleman", "Smith", "Black", "Escobito", "Nobody"];
+// The Premium scripts that book a visit for a named pet.
+const BOOKING_SCRIPTS = PREMIUM_SCRIPTS.filter(([first]) => /book|vaccination/i.test(first) && !first.includes("my cat"));
+
+const OWNER_LOOKUPS =["Davis", "Franklin", "Coleman", "Smith", "Black", "Escobito", "Nobody"];
 const SCANNER_PATHS = ["/.env", "/wp-login.php", "/.git/config", "/xmlrpc.php"];
 
 export async function GET(request: Request) {
@@ -59,13 +64,15 @@ export async function GET(request: Request) {
   }
 
   const origin = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL ?? new URL(request.url).host}`;
-  const plans = [Math.random() < PREMIUM_SHARE ? ("premium" as const) : ("free" as const)];
+  const plan = Math.random() < PREMIUM_SHARE ? ("premium" as const) : ("free" as const);
+  const runs = [{ plan, scripts: plan === "free" ? FREE_SCRIPTS : PREMIUM_SCRIPTS }];
+  if (new Date().getUTCMinutes() % 5 === 0) runs.push({ plan: "premium", scripts: BOOKING_SCRIPTS });
 
   const [conversations] = await Promise.all([
     Promise.allSettled(
-      plans.map(async (plan) => {
+      runs.map(async ({ plan, scripts }) => {
         await sleep(Math.random() * SPREAD_MS);
-        const script = pick(plan === "free" ? FREE_SCRIPTS : PREMIUM_SCRIPTS);
+        const script = pick(scripts);
         return { plan, script: script[0], turns: await runConversation(origin, script, plan) };
       }),
     ),
