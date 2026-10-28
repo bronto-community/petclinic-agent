@@ -13,7 +13,6 @@ ENV OTEL_SERVICE_NAME=reminders \
     OTEL_TRACES_EXPORTER=otlp \
     OTEL_LOGS_EXPORTER=otlp \
     OTEL_METRICS_EXPORTER=none \
-    OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true \
     PYTHONUNBUFFERED=1
 
 CMD ["opentelemetry-instrument", "python", "worker.py"]
