@@ -5,7 +5,9 @@ import { context, propagation } from "@opentelemetry/api";
 import { QueueClient } from "@vercel/queue";
 
 // Messages can only be received in the region they were sent to; the worker polls dub1.
-const queue = new QueueClient({ region: "dub1" });
+// By default a message is pinned to the sending deployment, and only consumers of that
+// deployment receive it. The worker is a daemon without a deployment ID, so send unpinned.
+const queue = new QueueClient({ region: "dub1", deploymentId: null });
 
 export type VisitBooked = {
   visitId: number;
