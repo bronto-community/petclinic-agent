@@ -6,3 +6,4 @@ This project uses the **eve framework**. Before writing agent code, read the rel
 - `petclinic/`: the upstream PetClinic REST image, unmodified, plus the OpenTelemetry Java agent. Keep it unmodified.
 - Secrets live only in `.env`, `.env.local`, `petclinic/.env` and Vercel environment variables. Never commit them.
 - Keep the demo small: demo-scale traffic, no production hardening beyond what the articles need.
+- Hosted PetClinic (`infra/deploy-lightsail.sh`): restart the stack only with `/opt/petclinic-agent/petclinic/compose-up.sh` on the instance, never a plain `docker compose up -d`. The stack runs with several compose files (`compose.public.yaml` publishes ports 80/443, `compose.supabase.yaml` moves the database to Supabase); leaving one out recreates the containers without it. Check a container's `com.docker.compose.project.config_files` label if unsure.

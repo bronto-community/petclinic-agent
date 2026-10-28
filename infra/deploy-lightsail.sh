@@ -4,6 +4,14 @@
 #
 #   OTEL_EXPORTER_OTLP_ENDPOINT=https://... OTLP_HEADERS='{authorization: "Bearer ..."}' ./infra/deploy-lightsail.sh
 #
+# To use Supabase Postgres instead of the local container, also set POSTGRES_URL,
+# POSTGRES_USER, POSTGRES_PASS, SUPABASE_PROJECT_REF, SUPABASE_REGION and
+# SUPABASE_METRICS_KEY (see compose.supabase.yaml); the stack then starts with it.
+#
+# The compose files the stack runs with are written to /opt/petclinic-agent/petclinic/compose-up.sh
+# on the instance. Restart it with that script (for example after editing .env): a plain
+# `docker compose up -d` leaves out compose.public.yaml (ports 80/443) and compose.supabase.yaml.
+#
 # Creates a 2 GB instance (small_3_0, $12/month) and a static IP (free while
 # attached), opens ports 80 and 443, and boots the compose stack with Caddy
 # serving https://petclinic-<ip>.sslip.io. Prints the URL and the shared key
@@ -18,6 +26,17 @@ REPO="${REPO:-https://github.com/bronto-community/petclinic-agent.git}"
 OTLP_HEADERS="${OTLP_HEADERS:-}"
 [ -n "$OTLP_HEADERS" ] || OTLP_HEADERS="{}"
 PETCLINIC_API_KEY="${PETCLINIC_API_KEY:-$(openssl rand -hex 24)}"
+COMPOSE_FILES="-f compose.yaml -f compose.public.yaml"
+SUPABASE_ENV=""
+if [ -n "${POSTGRES_URL:-}" ]; then
+  COMPOSE_FILES="$COMPOSE_FILES -f compose.supabase.yaml"
+  SUPABASE_ENV="POSTGRES_URL=$POSTGRES_URL
+POSTGRES_USER=${POSTGRES_USER:?set POSTGRES_USER}
+POSTGRES_PASS=${POSTGRES_PASS:?set POSTGRES_PASS}
+SUPABASE_PROJECT_REF=${SUPABASE_PROJECT_REF:?set SUPABASE_PROJECT_REF}
+SUPABASE_REGION=${SUPABASE_REGION:?set SUPABASE_REGION}
+SUPABASE_METRICS_KEY=${SUPABASE_METRICS_KEY:?set SUPABASE_METRICS_KEY}"
+fi
 ls() { aws lightsail --region "$REGION" "$@"; }
 
 ls allocate-static-ip --static-ip-name "$NAME-ip" >/dev/null
@@ -37,9 +56,16 @@ OTEL_EXPORTER_OTLP_ENDPOINT=$OTEL_EXPORTER_OTLP_ENDPOINT
 OTLP_HEADERS=$OTLP_HEADERS
 SITE_ADDRESS=$HOST
 ENVIRONMENT=production
+$SUPABASE_ENV
 ENV
 chmod 600 .env
-docker compose -f compose.yaml -f compose.public.yaml up -d --build
+cat > compose-up.sh <<'UP'
+#!/bin/sh
+# Start or restart the stack with the compose files it was deployed with.
+cd "\$(dirname "\$0")" && exec docker compose $COMPOSE_FILES up -d "\$@"
+UP
+chmod 755 compose-up.sh
+./compose-up.sh --build
 SCRIPT
 )
 

@@ -102,7 +102,7 @@ The agent then uses `PETCLINIC_URL=https://<your hostname>/petclinic/api`.
 
 Options:
 
-- **AWS Lightsail in one command:** `OTEL_EXPORTER_OTLP_ENDPOINT=... OTLP_HEADERS='{...}' ./infra/deploy-lightsail.sh` creates a 2 GB instance with a static IP and an `sslip.io` hostname, and prints `PETCLINIC_URL` and `PETCLINIC_API_KEY`.
+- **AWS Lightsail in one command:** `OTEL_EXPORTER_OTLP_ENDPOINT=... OTLP_HEADERS='{...}' ./infra/deploy-lightsail.sh` creates a 2 GB instance with a static IP and an `sslip.io` hostname, and prints `PETCLINIC_URL` and `PETCLINIC_API_KEY`. Set the Supabase variables from `compose.supabase.yaml` as well to start it on Supabase. On the instance, restart the stack with `/opt/petclinic-agent/petclinic/compose-up.sh`, which keeps the compose files it was deployed with.
 - **For a quick test without a server:** run the stack locally (see above) and expose port 8088 with a tunnel such as `cloudflared` or `ngrok`.
 - **Without the extras:** `compose.public.yaml` also starts the synthetic browser. Leave them out with `docker compose ... up -d postgres petclinic caddy otel-collector`.
 
