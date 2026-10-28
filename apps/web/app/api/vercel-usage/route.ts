@@ -75,7 +75,7 @@ export async function GET(request: Request) {
   const hourAgo = now - 3_600_000;
   const summary = { sessions: 0, drives: 0, daemonInstances: 0, charges: 0 };
 
-  const { sessions } = await vercel<{ sessions: Session[] }>(`/v2/sandboxes/sessions?project=${projectId}&limit=100`);
+  const { sessions } = await vercel<{ sessions: Session[] }>(`/v2/sandboxes/sessions?project=${projectId}&limit=50`);
   for (const s of sessions.filter((s) => s.stoppedAt && s.stoppedAt >= hourAgo && s.stoppedAt < now)) {
     emit("vercel.sandbox.session", s.stoppedAt!, {
       "vercel.sandbox.session.id": s.id,
