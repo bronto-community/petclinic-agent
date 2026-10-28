@@ -33,9 +33,15 @@ log = logging.getLogger("reminders")
 tracer = trace.get_tracer("reminders")
 
 
+class ReminderFailed(Exception):
+    """Raised after the failure is recorded on the span and logged."""
+
+
 async def schedule_reminder(petclinic: httpx.AsyncClient, message) -> None:
     visit = message.payload
     context = propagate.extract(visit.get("trace", {}))
+    # Open the span before reading the payload, so a malformed message still shows up
+    # in the booking's trace and the failure log carries its trace ID.
     with tracer.start_as_current_span(
         f"process {TOPIC}",
         context=context,
@@ -47,11 +53,14 @@ async def schedule_reminder(petclinic: httpx.AsyncClient, message) -> None:
             "messaging.consumer.group.name": CONSUMER_GROUP,
             "messaging.message.id": message.message_id,
             "messaging.message.delivery_count": message.metadata.delivery_count,
-            "petclinic.visit.id": visit["visitId"],
-            "petclinic.owner.id": visit["ownerId"],
         },
+        # The except block below records the original error; ReminderFailed would replace it.
+        record_exception=False,
+        set_status_on_exception=False,
     ) as span:
         try:
+            span.set_attribute("petclinic.visit.id", visit["visitId"])
+            span.set_attribute("petclinic.owner.id", visit["ownerId"])
             response = await petclinic.get(f"/owners/{visit['ownerId']}")
             response.raise_for_status()
             owner = response.json()
@@ -68,8 +77,12 @@ async def schedule_reminder(petclinic: httpx.AsyncClient, message) -> None:
             )
         except Exception as error:
             span.record_exception(error)
-            span.set_status(StatusCode.ERROR, str(error))
-            raise
+            span.set_status(StatusCode.ERROR, repr(error))
+            log.exception(
+                "reminder failed, message will be redelivered",
+                extra={"visit_id": visit.get("visitId"), "delivery_count": message.metadata.delivery_count},
+            )
+            raise ReminderFailed from error
 
 
 async def main() -> None:
@@ -92,8 +105,10 @@ async def main() -> None:
                             log.error("reminder dropped after too many deliveries", extra={"visit_id": message.payload.get("visitId")})
                             continue
                         await schedule_reminder(petclinic, message)
+                except ReminderFailed:
+                    pass  # recorded on the span and logged in schedule_reminder
                 except Exception:
-                    log.exception("reminder failed, message will be redelivered")
+                    log.exception("queue delivery failed, message will be redelivered")
             if not received:
                 try:
                     await asyncio.wait_for(stop.wait(), timeout=2)
